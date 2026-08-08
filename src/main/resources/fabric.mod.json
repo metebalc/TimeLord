@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "time-lord",
+	"version": "${version}",
+	"name": "Time Lord",
+	"description": "Become a master of time itself. Slow the world, move beyond normal speed, and tear through space-time with devastating abilities.",
+	"authors": [
+		"metebalc"
+	],
+	"contact": {
+		"sources": ""
+	},
+	"license": "MIT",
+	"icon": "assets/time-lord/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.timelord.TimeLord"
+		],
+		"client": [
+			"com.timelord.client.TimeLordClient"
+		]
+	},
+	"mixins": [
+		"time-lord.mixins.json",
+		{
+			"config": "time-lord.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}
