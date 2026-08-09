@@ -1,5 +1,6 @@
 package com.timelord.time;
 
+import com.timelord.ability.TheWorldAbility;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.particle.ParticleTypes;
@@ -64,19 +65,35 @@ public final class TimeController {
     }
 
     public static boolean shouldTickEntity(ServerWorld world, Entity entity) {
-        if (entity instanceof PlayerEntity || ACTIVE_FIELDS.isEmpty()) {
-            return true;
+        if (TheWorldAbility.isTimeStopped()) {
+            if (entity instanceof ServerPlayerEntity player)
+                return TheWorldAbility.canMove(player);
+
+            return false;
         }
 
+        if (entity instanceof PlayerEntity)
+            return true;
+
+        if (ACTIVE_FIELDS.isEmpty())
+            return true;
+
         int largestInterval = 1;
+
         for (SlowField field : ACTIVE_FIELDS.values()) {
             if (!field.world().equals(world.getRegistryKey())) {
                 continue;
             }
-            if (entity.squaredDistanceTo(field.center()) > field.radius() * field.radius()) {
+
+            if (entity.squaredDistanceTo(field.center())
+                    > field.radius() * field.radius()) {
                 continue;
             }
-            largestInterval = Math.max(largestInterval, Math.round(1.0F / field.scale()));
+
+            largestInterval = Math.max(
+                    largestInterval,
+                    Math.round(1.0F / field.scale())
+            );
         }
 
         return largestInterval == 1 || serverTick % largestInterval == 0L;
@@ -86,8 +103,7 @@ public final class TimeController {
         return !ACTIVE_FIELDS.isEmpty();
     }
 
-    private record SlowField(RegistryKey<World> world, Vec3d center, double radius,
-                             float scale, int remainingTicks) {
+    private record SlowField(RegistryKey<World> world, Vec3d center, double radius, float scale, int remainingTicks) {
         private SlowField withRemainingTicks(int ticks) {
             return new SlowField(world, center, radius, scale, ticks);
         }

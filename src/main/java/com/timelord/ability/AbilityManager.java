@@ -1,5 +1,9 @@
 package com.timelord.ability;
 
+import com.timelord.TimeLord;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
@@ -13,9 +17,8 @@ public final class AbilityManager {
     private static final Map<UUID, EnumMap<AbilityType, Long>> COOLDOWNS = new HashMap<>();
 
     static {
-        ABILITIES.put(AbilityType.SLOW_3, new SlowTimeAbility(3));
-        ABILITIES.put(AbilityType.SLOW_5, new SlowTimeAbility(5));
-        ABILITIES.put(AbilityType.SLOW_7, new SlowTimeAbility(7));
+        ABILITIES.put(AbilityType.SLOW_TIME, new SlowTimeAbility(10));
+        ABILITIES.put(AbilityType.THE_WORLD, new TheWorldAbility());
         ABILITIES.put(AbilityType.DIMENSION_CUT, new DimensionCutAbility());
         ABILITIES.put(AbilityType.TIME_SHIFT, new TimeShiftAbility());
     }
@@ -26,6 +29,11 @@ public final class AbilityManager {
     public static void activate(ServerPlayerEntity player, int networkId) {
         AbilityType type = AbilityType.fromNetworkId(networkId);
         if (type == null || player.isSpectator() || !player.isAlive()) {
+            return;
+        }
+
+        if (type == AbilityType.TIME_SHIFT || type == AbilityType.THE_WORLD) {
+            ABILITIES.get(type).activate(player);
             return;
         }
 
@@ -42,15 +50,24 @@ public final class AbilityManager {
 
         ABILITIES.get(type).activate(player);
         playerCooldowns.put(type, now + type.cooldownTicks());
+        PacketByteBuf buffer = PacketByteBufs.create();
+
+        buffer.writeByte(type.networkId());
+        buffer.writeInt(type.cooldownTicks());
+
+        ServerPlayNetworking.send(
+                player,
+                TimeLord.COOLDOWN_PACKET,
+                buffer
+        );
         player.sendMessage(Text.literal(type.displayName()), true);
     }
 
     public enum AbilityType {
-        SLOW_3(0, 8 * 20, "Slow Time: 3 seconds"),
-        SLOW_5(1, 12 * 20, "Slow Time: 5 seconds"),
-        SLOW_7(2, 16 * 20, "Slow Time: 7 seconds"),
-        DIMENSION_CUT(3, 4 * 20, "Dimension Cut"),
-        TIME_SHIFT(4, 14 * 20, "Time Shift");
+        SLOW_TIME(0, 8 * 20, "Slow Time"),
+        THE_WORLD(1, 0, "The World"),
+        DIMENSION_CUT(2, 4 * 20, "Dimension Cut"),
+        TIME_SHIFT(3, 0, "Time Shift");
 
         private final int networkId;
         private final int cooldownTicks;
