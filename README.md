@@ -135,6 +135,29 @@ Clone the repository:
 git clone <repository-url>
 cd time-lord
 ```
+
+## Bug Reports
+
+Found a bug? Please report it through [GitHub Issues](https://github.com/metebalc/TimeLord/issues).
+
+When reporting an issue, include:
+- Minecraft version
+- Time Lord version
+- Fabric Loader version
+- Fabric API version
+- Steps to reproduce the issue
+- Relevant logs or crash reports
+
+## Compatibility
+
+So far, no official compatibility with other mods has been confirmed or added.
+
+Time Lord may work alongside many Fabric mods, but conflicts can occur with mods that modify entity movement, player speed, damage handling, projectiles, networking, or game tick behavior.
+
+If you discover a compatibility issue, please report it through GitHub Issues and include the conflicting mod name, version, and any relevant logs.
+
+Compatibility patches are not guaranteed. There are a large number of Fabric mods, and it may not be practical to support every possible mod combination. Compatibility fixes may be considered depending on the severity of the issue, the mods involved, and the amount of work required.
+
 ## Disclaimers
 
 > [!WARNING]
