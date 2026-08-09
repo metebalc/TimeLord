@@ -3,7 +3,8 @@
 	"package": "com.timelord.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
-		"ServerWorldMixin"
+		"ServerWorldMixin",
+		"LivingEntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
