@@ -1,7 +1,11 @@
 package com.timelord.ability;
 
+import com.timelord.ModSounds;
 import com.timelord.time.TimeController;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.text.Text;
 
 import java.util.HashMap;
@@ -11,9 +15,9 @@ import java.util.UUID;
 public final class SlowTimeAbility implements Ability {
     private static final Map<UUID, Mode> SLOW_TIMES = new HashMap<>();
     private enum Mode {
-        FIRST(0.5F, 16.0D),
-        SECOND(0.25F, 24.0D),
-        THIRD(0.1F, 32.0D);
+        FIRST(0.5F, 8.0D),
+        SECOND(0.25F, 12.0D),
+        THIRD(0.1F, 16.0D);
 
         private final float timeScale;
         private final double radius;
@@ -62,6 +66,7 @@ public final class SlowTimeAbility implements Ability {
 
     @Override
     public void activate(ServerPlayerEntity player) {
+        ServerWorld world = player.getServerWorld();
         Mode mode = SLOW_TIMES.getOrDefault(player.getUuid(), Mode.FIRST);
 
         TimeController.slowTime(
@@ -70,10 +75,12 @@ public final class SlowTimeAbility implements Ability {
                 durationTicks,
                 mode.radius()
         );
+        world.playSound(null, player.getBlockPos(), ModSounds.SLOW_TIME,
+                SoundCategory.PLAYERS, 0.7F, 1.0F);
     }
 
     @Override
-    public void deactivate(ServerPlayerEntity player) {
-        TimeController.resetTime(player.getUuid());
+    public void deactivate(MinecraftServer server, ServerPlayerEntity player) {
+        TimeController.resetTime(server, player.getUuid());
     }
 }
