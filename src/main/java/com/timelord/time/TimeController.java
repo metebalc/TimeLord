@@ -1,9 +1,9 @@
 package com.timelord.time;
 
 import com.timelord.ability.TheWorldAbility;
+import com.timelord.network.TimeFieldNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,19 +25,25 @@ public final class TimeController {
 
     public static void slowTime(ServerPlayerEntity player, float scale, int durationTicks, double radius) {
         float safeScale = Math.max(0.05F, Math.min(1.0F, scale));
+        Vec3d center = player.getPos();
+
         ACTIVE_FIELDS.put(player.getUuid(), new SlowField(
-                player.getWorld().getRegistryKey(), player.getPos(), radius, safeScale, durationTicks));
+                player.getWorld().getRegistryKey(), center, radius, safeScale, durationTicks));
 
         ServerWorld world = player.getServerWorld();
-        world.spawnParticles(ParticleTypes.REVERSE_PORTAL, player.getX(), player.getBodyY(0.5D), player.getZ(),
-                80, radius * 0.35D, 1.2D, radius * 0.35D, 0.03D);
+        TimeFieldNetworking.sendStartField(player.getServer(), world, player.getUuid(), center, radius, durationTicks);
     }
 
-    public static void resetTime(UUID owner) {
+    public static void resetTime(MinecraftServer server, UUID owner) {
         ACTIVE_FIELDS.remove(owner);
+
+        TimeFieldNetworking.sendRemoveField(server, owner);
     }
 
-    public static void resetAll() {
+    public static void resetAll(MinecraftServer server) {
+        for (UUID owner : ACTIVE_FIELDS.keySet())
+            TimeFieldNetworking.sendRemoveField(server, owner);
+
         ACTIVE_FIELDS.clear();
         serverTick = 0L;
     }
@@ -51,12 +57,14 @@ public final class TimeController {
             ServerPlayerEntity owner = server.getPlayerManager().getPlayer(entry.getKey());
 
             if (owner == null || !owner.getWorld().getRegistryKey().equals(field.world())) {
+                TimeFieldNetworking.sendRemoveField(server, entry.getKey());
                 iterator.remove();
                 continue;
             }
 
             int ticksLeft = field.remainingTicks() - 1;
             if (ticksLeft <= 0) {
+                TimeFieldNetworking.sendRemoveField(server, entry.getKey());
                 iterator.remove();
             } else {
                 entry.setValue(field.withRemainingTicks(ticksLeft));

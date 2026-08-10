@@ -3,9 +3,13 @@ package com.timelord.client;
 import com.timelord.TimeLord;
 import com.timelord.ability.AbilityManager.AbilityType;
 import com.timelord.client.mixin.GameRendererMixin;
+import com.timelord.client.network.TimeFieldClientNetworking;
+import com.timelord.client.render.SlowTimeFieldRenderer;
+import com.timelord.client.time.ClientTimeField;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -96,7 +100,11 @@ public final class TimeLordClient implements ClientModInitializer {
 						)
 				);
 
+		TimeFieldClientNetworking.register();
+		SlowTimeFieldRenderer.register();
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			ClientTimeField.tick();
 			KEYS.forEach((ability, key) -> {
 				while (key.wasPressed()) {
 					if (client.player != null && ClientPlayNetworking.canSend(TimeLord.ACTIVATE_ABILITY_PACKET)) {
@@ -114,6 +122,12 @@ public final class TimeLordClient implements ClientModInitializer {
 			}
 			COOLDOWNS.replaceAll((ability, cooldown) -> Math.max(0, cooldown - 1));
 		});
+
+		ClientPlayConnectionEvents.DISCONNECT.register(
+				(handler, client) -> {
+					ClientTimeField.clear();
+				}
+		);
 
 		ClientPlayNetworking.registerGlobalReceiver(
 				TimeLord.COOLDOWN_PACKET,
@@ -195,4 +209,3 @@ public final class TimeLordClient implements ClientModInitializer {
 		}
 	}
 }
-

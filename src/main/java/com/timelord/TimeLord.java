@@ -45,7 +45,7 @@ public class TimeLord implements ModInitializer {
 
 		ServerTickEvents.END_SERVER_TICK.register(TimeController::tick);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			TimeController.resetAll();
+			TimeController.resetAll(server);
 			TheWorldAbility.reset();
 		});
 		LOGGER.info("TimeLord has been activated");

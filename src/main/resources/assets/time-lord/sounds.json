@@ -1,4 +1,9 @@
 {
+  "slow_time": {
+    "sounds": [
+      "time-lord:slow_time"
+    ]
+  },
   "the_world": {
     "sounds": [
       "time-lord:the_world"
