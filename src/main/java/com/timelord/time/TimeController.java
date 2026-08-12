@@ -20,15 +20,14 @@ public final class TimeController {
     private static final Map<UUID, SlowField> ACTIVE_FIELDS = new HashMap<>();
     private static long serverTick;
 
-    private TimeController() {
-    }
+    private TimeController() {}
 
     public static void slowTime(ServerPlayerEntity player, float scale, int durationTicks, double radius) {
-        float safeScale = Math.max(0.05F, Math.min(1.0F, scale));
+        float safeScale = Math.max(0.025F, Math.min(1.0F, scale));
         Vec3d center = player.getPos();
 
-        ACTIVE_FIELDS.put(player.getUuid(), new SlowField(
-                player.getWorld().getRegistryKey(), center, radius, safeScale, durationTicks));
+        ACTIVE_FIELDS.put(player.getUuid(),
+                new SlowField(player.getWorld().getRegistryKey(), center, radius, safeScale, durationTicks, player.getUuid()));
 
         ServerWorld world = player.getServerWorld();
         TimeFieldNetworking.sendStartField(player.getServer(), world, player.getUuid(), center, radius, durationTicks);
@@ -80,30 +79,24 @@ public final class TimeController {
             return false;
         }
 
-        if (entity instanceof PlayerEntity)
-            return true;
-
         if (ACTIVE_FIELDS.isEmpty())
             return true;
 
         int largestInterval = 1;
 
         for (SlowField field : ACTIVE_FIELDS.values()) {
-            if (!field.world().equals(world.getRegistryKey())) {
+            if (!field.world().equals(world.getRegistryKey()))
                 continue;
-            }
 
-            if (entity.squaredDistanceTo(field.center())
-                    > field.radius() * field.radius()) {
+            if (field.excludedEntityId() != null && field.excludedEntityId().equals(entity.getUuid()))
                 continue;
-            }
 
-            largestInterval = Math.max(
-                    largestInterval,
-                    Math.round(1.0F / field.scale())
-            );
+            if (entity.squaredDistanceTo(field.center()) > field.radius() * field.radius())
+                continue;
+
+            int interval = Math.max(1, Math.round(1.0F / field.scale()));
+            largestInterval = Math.max(largestInterval, interval);
         }
-
         return largestInterval == 1 || serverTick % largestInterval == 0L;
     }
 
@@ -111,9 +104,29 @@ public final class TimeController {
         return !ACTIVE_FIELDS.isEmpty();
     }
 
-    private record SlowField(RegistryKey<World> world, Vec3d center, double radius, float scale, int remainingTicks) {
+    public static void addTemporaryField(ServerPlayerEntity owner, Vec3d center, double radius, float scale, int durationTicks) {
+        float safeScale = Math.max(0.01F, Math.min(1.0F, scale));
+
+        ACTIVE_FIELDS.put(owner.getUuid(),
+                new SlowField(
+                        owner.getWorld().getRegistryKey(),
+                        center,
+                        radius,
+                        safeScale,
+                        durationTicks,
+                        owner.getUuid()
+                )
+        );
+    }
+
+    public static void removeTemporaryField(UUID owner) {
+        ACTIVE_FIELDS.remove(owner);
+    }
+
+    private record SlowField(RegistryKey<World> world, Vec3d center, double radius, float scale, int remainingTicks, UUID excludedEntityId) {
         private SlowField withRemainingTicks(int ticks) {
-            return new SlowField(world, center, radius, scale, ticks);
+            return new SlowField(world, center, radius, scale, ticks, excludedEntityId);
         }
     }
+
 }

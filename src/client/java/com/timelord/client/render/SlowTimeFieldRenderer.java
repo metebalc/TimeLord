@@ -1,6 +1,7 @@
 package com.timelord.client.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.timelord.client.ClientJudgementCut;
 import com.timelord.client.time.ClientTimeField;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -28,44 +29,130 @@ public final class SlowTimeFieldRenderer {
 
     public static void register() {
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
-            if (!ClientTimeField.isActive()) {
+
+            boolean timeFieldActive = ClientTimeField.isActive();
+            boolean judgementCutActive = ClientJudgementCut.exists();
+
+            if (!timeFieldActive && !judgementCutActive) {
                 FIELD_START_TIMES.clear();
                 return;
             }
 
             MatrixStack matrices = context.matrixStack();
 
-            if (matrices == null)
+            if (matrices == null) {
                 return;
+            }
 
             MinecraftClient client = MinecraftClient.getInstance();
             Vec3d cameraPos = client.gameRenderer.getCamera().getPos();
 
             long currentTime = System.currentTimeMillis();
 
-            for (Map.Entry<UUID, ClientTimeField.Field> entry : ClientTimeField.getFields().entrySet()) {
-                UUID fieldId = entry.getKey();
-                ClientTimeField.Field field = entry.getValue();
+            /*
+             * SLOW TIME
+             */
+            if (timeFieldActive) {
 
-                long startTime = FIELD_START_TIMES.computeIfAbsent(fieldId, id -> currentTime);
-                float progress = Math.min(1.0F, (currentTime - startTime) / (float) EXPAND_DURATION_MS);
-                float easedInOutProgress = progress * progress * (3.0F - 2.0F * progress);
-                double animatedRadius = field.radius() * easedInOutProgress;
+                for (Map.Entry<UUID, ClientTimeField.Field> entry
+                        : ClientTimeField.getFields().entrySet()) {
+
+                    UUID fieldId = entry.getKey();
+                    ClientTimeField.Field field = entry.getValue();
+
+                    long startTime =
+                            FIELD_START_TIMES.computeIfAbsent(
+                                    fieldId,
+                                    id -> currentTime
+                            );
+
+                    float progress =
+                            Math.min(
+                                    1.0F,
+                                    (currentTime - startTime)
+                                            / (float) EXPAND_DURATION_MS
+                            );
+
+                    float eased =
+                            progress * progress
+                                    * (3.0F - 2.0F * progress);
+
+                    double animatedRadius =
+                            field.radius() * eased;
+
+                    renderSphere(
+                            matrices,
+                            cameraPos,
+                            field.center(),
+                            animatedRadius
+                    );
+
+                    renderRing(
+                            matrices,
+                            cameraPos,
+                            field.center(),
+                            animatedRadius * 1.25D
+                    );
+                }
+
+                FIELD_START_TIMES.keySet().removeIf(
+                        id -> !ClientTimeField
+                                .getFields()
+                                .containsKey(id)
+                );
+            }
+
+            /*
+             * THE JUDGEMENT CUT
+             */
+            if (judgementCutActive) {
+
+                double radius;
+
+                if (ClientJudgementCut.isCharging()) {
+
+                    long elapsed =
+                            currentTime
+                                    - ClientJudgementCut.getStartTime();
+
+                    double progress =
+                            Math.min(
+                                    1.0D,
+                                    elapsed / 3000.0D
+                            );
+
+                    progress =
+                            progress * progress
+                                    * (3.0D - 2.0D * progress);
+
+                    radius =
+                            2.5D
+                                    + (10.0D - 2.5D)
+                                    * progress;
+
+                } else {
+
+                    radius =
+                            ClientJudgementCut.getFinalRadius();
+                }
+
+                Vec3d center =
+                        ClientJudgementCut.getCenter();
 
                 renderSphere(
                         matrices,
                         cameraPos,
-                        field.center(),
-                        animatedRadius
+                        center,
+                        radius
                 );
+
                 renderRing(
                         matrices,
                         cameraPos,
-                        field.center(),
-                        animatedRadius * 1.25D
+                        center,
+                        radius * 1.15D
                 );
             }
-            FIELD_START_TIMES.keySet().removeIf(id -> !ClientTimeField.getFields().containsKey(id));
         });
     }
 

@@ -3,7 +3,9 @@ package com.timelord.client;
 import com.timelord.TimeLord;
 import com.timelord.ability.AbilityManager.AbilityType;
 import com.timelord.client.mixin.GameRendererMixin;
+import com.timelord.client.network.JudgementCutClientNetworking;
 import com.timelord.client.network.TimeFieldClientNetworking;
+import com.timelord.client.render.JudgementCutSlashRenderer;
 import com.timelord.client.render.SlowTimeFieldRenderer;
 import com.timelord.client.time.ClientTimeField;
 import net.fabricmc.api.ClientModInitializer;
@@ -39,12 +41,9 @@ public final class TimeLordClient implements ClientModInitializer {
 	private static final int SLOT_SPACING = 5;
 
 	private static boolean THE_WORLD_ACTIVE = false;
+	private static final Map<AbilityType, Boolean> KEY_HELD = new EnumMap<>(AbilityType.class);
 
-	private record AbilitySlot(
-			AbilityType ability,
-			String buttonText,
-			Identifier texture
-	) {};
+	private record AbilitySlot(AbilityType ability, String buttonText, Identifier texture) {};
 
 	private static final Map<AbilityType, Integer> COOLDOWNS = new EnumMap<>(AbilityType.class);
 	private static final Identifier SLOW_TIME_DOMAIN_TEXTURE = Identifier.of("time-lord", "textures/domain_32x32.png");
@@ -74,14 +73,7 @@ public final class TimeLordClient implements ClientModInitializer {
 		int textX = x + (width - textWidth) / 2;
 		int textY = y + (height - client.textRenderer.fontHeight) / 2 + 1;
 
-		drawContext.drawText(
-				client.textRenderer,
-				text,
-				textX,
-				textY,
-				TEXT_COLOR,
-				shadow
-		);
+		drawContext.drawText(client.textRenderer, text, textX, textY, TEXT_COLOR, shadow);
 	}
 
 	@Override
@@ -92,40 +84,62 @@ public final class TimeLordClient implements ClientModInitializer {
 		register(AbilityType.DIMENSION_CUT, "key.time-lord.dimension_cut", GLFW.GLFW_KEY_C);
 		register(AbilityType.TIME_SHIFT, "key.time-lord.time_shift", GLFW.GLFW_KEY_V);
 		SWITCH_SLOW_MODE_KEY = KeyBindingHelper.registerKeyBinding(
-				new KeyBinding(
-						"key.time-lord.switch_slow_mode",
-						InputUtil.Type.KEYSYM,
-						GLFW.GLFW_KEY_R,
-						CATEGORY
-						)
+				new KeyBinding("key.time-lord.switch_slow_mode", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, CATEGORY)
 				);
 
 		TimeFieldClientNetworking.register();
+		JudgementCutClientNetworking.register();
+
 		SlowTimeFieldRenderer.register();
+		JudgementCutSlashRenderer.register();
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientTimeField.tick();
 			KEYS.forEach((ability, key) -> {
-				while (key.wasPressed()) {
-					if (client.player != null && ClientPlayNetworking.canSend(TimeLord.ACTIVATE_ABILITY_PACKET)) {
+				if (client.player == null)
+					return;
+
+				if (!ability.isChargeable()) {
+					while (key.wasPressed()) {
+						if (!ClientPlayNetworking.canSend(TimeLord.ACTIVATE_ABILITY_PACKET))
+							continue;
+
 						PacketByteBuf buffer = PacketByteBufs.create();
 						buffer.writeByte(ability.networkId());
 						ClientPlayNetworking.send(TimeLord.ACTIVATE_ABILITY_PACKET, buffer);
 					}
+					return;
 				}
+				boolean held = key.isPressed();
+				boolean wasHeld = KEY_HELD.getOrDefault(ability, false);
+				if (held && !wasHeld) {
+					if (ClientPlayNetworking.canSend(TimeLord.START_CHARGE_PACKET)) {
+						PacketByteBuf buffer = PacketByteBufs.create();
+						buffer.writeByte(ability.networkId());
+						ClientPlayNetworking.send(TimeLord.START_CHARGE_PACKET, buffer);
+					}
+				}
+				if (!held && wasHeld) {
+					if (ClientPlayNetworking.canSend(TimeLord.RELEASE_CHARGE_PACKET)) {
+						ClientPlayNetworking.send(TimeLord.RELEASE_CHARGE_PACKET, PacketByteBufs.empty());
+					}
+				}
+				KEY_HELD.put(ability, held);
 			});
-
 			while (SWITCH_SLOW_MODE_KEY.wasPressed()) {
 				if (client.player != null && ClientPlayNetworking.canSend(TimeLord.SWITCH_SLOW_MODE_PACKET)) {
 					ClientPlayNetworking.send(TimeLord.SWITCH_SLOW_MODE_PACKET, PacketByteBufs.empty());
 				}
 			}
-			COOLDOWNS.replaceAll((ability, cooldown) -> Math.max(0, cooldown - 1));
+
+			COOLDOWNS.replaceAll((ability, cooldown) -> Math.max(0, cooldown - 1)
+			);
 		});
 
-		ClientPlayConnectionEvents.DISCONNECT.register(
-				(handler, client) -> {
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 					ClientTimeField.clear();
+					ClientJudgementCut.clear();
+					KEY_HELD.clear();
 				}
 		);
 
@@ -148,12 +162,11 @@ public final class TimeLordClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(
 				TimeLord.THE_WORLD_STATE_PACKET,
 				(client, handler, buf, responseSender) -> {
-
 					boolean active = buf.readBoolean();
 
 					client.execute(() -> {
 						THE_WORLD_ACTIVE = active;
-						updateTheWorldShader(client);
+						updateMonochromeShader(client);
 					});
 				}
 		);
@@ -200,10 +213,12 @@ public final class TimeLordClient implements ClientModInitializer {
 		KEYS.put(ability, KeyBindingHelper.registerKeyBinding(key));
 	}
 
-	private static void updateTheWorldShader(MinecraftClient client) {
-		if (THE_WORLD_ACTIVE) {
-			((GameRendererMixin) client.gameRenderer)
-					.timeLord$loadPostProcessor(new Identifier("minecraft", "shaders/post/desaturate.json"));
+	public static void updateMonochromeShader(MinecraftClient client) {
+		boolean monochrome = THE_WORLD_ACTIVE || ClientJudgementCut.isMonochrome();
+
+		if (monochrome) {
+			((GameRendererMixin) client.gameRenderer).timeLord$loadPostProcessor(
+					new Identifier("minecraft", "shaders/post/desaturate.json"));
 		} else {
 			client.gameRenderer.disablePostProcessor();
 		}
