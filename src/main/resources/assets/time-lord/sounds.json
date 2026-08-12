@@ -8,5 +8,20 @@
     "sounds": [
       "time-lord:the_world"
     ]
+  },
+  "judgement_charge": {
+    "sounds": [
+      "time-lord:judgement_charge"
+    ]
+  },
+  "judgement_release": {
+    "sounds": [
+      "time-lord:judgement_release"
+    ]
+  },
+  "judgement_detonate": {
+    "sounds": [
+      "time-lord:judgement_detonate"
+    ]
   }
 }

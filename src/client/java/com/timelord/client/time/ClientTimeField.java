@@ -38,28 +38,13 @@ public final class ClientTimeField {
         FIELDS.clear();
     }
 
-    /**
-     * Runs once per CLIENT tick.
-     *
-     * This only counts down the visual representation.
-     * The server remains authoritative.
-     */
     public static void tick() {
-
-        Iterator<Map.Entry<UUID, Field>> iterator =
-                FIELDS.entrySet().iterator();
-
+        Iterator<Map.Entry<UUID, Field>> iterator = FIELDS.entrySet().iterator();
         while (iterator.hasNext()) {
+            Map.Entry<UUID, Field> entry = iterator.next();
+            Field field = entry.getValue();
 
-            Map.Entry<UUID, Field> entry =
-                    iterator.next();
-
-            Field field =
-                    entry.getValue();
-
-            int ticksLeft =
-                    field.ticksLeft() - 1;
-
+            int ticksLeft = field.ticksLeft() - 1;
             if (ticksLeft <= 0) {
                 iterator.remove();
                 continue;

@@ -54,13 +54,20 @@ Attacks against frozen entities are stored during stopped time and are applied w
 
 ---
 
-### ![Dimension Cut](.github/cuts_32x32.png) Dimension Cut
+### ![Judgement Cut](.github/cuts_32x32.png) Judgement Cut
 
-A space-cutting offensive ability.
+A chargeable space-cutting ability that creates a dimensional field around the player.
+
+* Hold `C` to charge and expand the field
+* The player is locked in place while charging
+* Release `C` to create suspended spatial cuts
+* Entities inside the field are nearly frozen in time
+* After approximately 3 seconds, all damage is released at once
+* The caster is unaffected by the attack and time distortion
 
 **Default control**
 
-- `C` — Dimension Cut
+* `C` — Hold to charge, release to activate
 
 ---
 
