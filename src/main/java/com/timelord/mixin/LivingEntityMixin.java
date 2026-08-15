@@ -11,16 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
-    @Inject(
-            method = "damage",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void timeLord$storeDamageDuringTimeStop(
-            DamageSource source,
-            float amount,
-            CallbackInfoReturnable<Boolean> cir
-    ) {
+    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
+    private void timeLord$storeDamageDuringTimeStop(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         if (!TheWorldAbility.isTimeStopped())
             return;
 
@@ -34,11 +26,7 @@ public abstract class LivingEntityMixin {
         if (target instanceof ServerPlayerEntity targetPlayer && TheWorldAbility.canMove(targetPlayer))
             return;
 
-        TheWorldAbility.storeHit(
-                target,
-                attacker,
-                amount
-        );
+        TheWorldAbility.storeHit(target, attacker, amount);
 
         cir.setReturnValue(false);
     }
