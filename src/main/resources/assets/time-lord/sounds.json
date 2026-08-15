@@ -23,5 +23,15 @@
     "sounds": [
       "time-lord:judgement_detonate"
     ]
-  }
+  },
+    "time_shift_charge": {
+      "sounds": [
+        "time-lord:time_shift_charge"
+      ]
+    },
+    "time_shift_boom": {
+      "sounds": [
+        "time-lord:time_shift_boom"
+      ]
+    }
 }
