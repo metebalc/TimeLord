@@ -3,7 +3,9 @@
 	"package": "com.timelord.client.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"client": [
-		"GameRendererMixin"
+		"GameRendererMixin",
+		"TimeShiftFovMixin",
+		"TimeShiftFirstPersonMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
