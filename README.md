@@ -73,23 +73,32 @@ A chargeable space-cutting ability that creates a dimensional field around the p
 
 ### ![Time Shift](.github/dash_32x32.png) Time Shift
 
-Increase your movement speed without using vanilla potion effects.
+Increase your movement speed
 
 Time Shift cycles through multiple speed modes:
 
-- `2x`
-- `3x`
-- `5x`
-- `10x`
-- `OFF`
+* `2x`
+* `3x`
+* `5x`
+* `10x`
+* `OFF`
 
-Pressing the key repeatedly cycles through the available modes.
+A quick press of `V` cycles through the available speed modes.
 
-[WIP] While Time Shift is active, the player also has automatic obstacle jumping to make high-speed movement easier.
+Holding `V` begins charging a high-speed burst without changing the currently selected mode.
+
+Additional movement features:
+
+* Increased step height while Time Shift is active
+* `5x` and `10x` allow the player to run across water while moving fast enough
+* Water running preserves the player's actual land movement speed
+* Running animations and splash effects are applied while moving across water
+* First-person hand movement is enhanced at high Time Shift speeds
 
 **Default control**
 
-- `V` — Cycle Time Shift speed
+* `V` — Tap to cycle speed mode
+* `V` — Hold to charge, release to burst
 
 ---
 ## Configuration
