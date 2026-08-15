@@ -21,6 +21,9 @@ public final class TimeLord implements ModInitializer {
 	public static final Identifier COOLDOWN_PACKET = new Identifier(MOD_ID, "cooldown");
 
 	public static final Identifier THE_WORLD_STATE_PACKET = new Identifier(MOD_ID, "the_world_state");
+	public static final Identifier THE_WORLD_HIT_PACKET = new Identifier(MOD_ID, "the_world_hit");
+	public static final Identifier THE_WORLD_RESOLVE_PACKET = new Identifier(MOD_ID, "the_world_resolve");
+	public static final Identifier THE_WORLD_ACTIVATE_PACKET = new Identifier(MOD_ID, "the_world_activate");
 
 	public static final Identifier TIME_SHIFT_STATE_PACKET = new Identifier(MOD_ID, "time_shift_state");
 	public static final Identifier TIME_SHIFT_CHARGE_START_PACKET = new Identifier(MOD_ID, "time_shift_charge_start");

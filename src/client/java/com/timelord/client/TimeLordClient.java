@@ -4,15 +4,15 @@ import com.timelord.ModParticles;
 import com.timelord.TimeLord;
 import com.timelord.ability.AbilityManager;
 import com.timelord.ability.AbilityManager.AbilityType;
+import com.timelord.client.mixin.GameRendererAccessor;
 import com.timelord.client.mixin.GameRendererMixin;
 import com.timelord.client.network.JudgementCutClientNetworking;
 import com.timelord.client.network.TimeFieldClientNetworking;
 import com.timelord.client.particle.TimeShiftLightningParticle;
-import com.timelord.client.render.JudgementCutSlashRenderer;
-import com.timelord.client.render.SlowTimeFieldRenderer;
-import com.timelord.client.render.TimeShiftRenderer;
+import com.timelord.client.render.*;
 import com.timelord.client.sound.TimeShiftSoundManager;
 import com.timelord.client.time.ClientTimeField;
+import com.timelord.client.time.TheWorldClientState;
 import com.timelord.client.time.TimeShiftWaterRunner;
 import com.timelord.mixin.EntityStepHeightAccessor;
 
@@ -32,10 +32,10 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 
+import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.EnumMap;
-import java.util.Map;
+import java.util.*;
 
 public final class TimeLordClient implements ClientModInitializer {
 	private static final String CATEGORY = "category.time-lord";
@@ -108,6 +108,8 @@ public final class TimeLordClient implements ClientModInitializer {
 		SlowTimeFieldRenderer.register();
 		JudgementCutSlashRenderer.register();
 		TimeShiftRenderer.register();
+		TheWorldShockwaveRenderer.register();
+		TheWorldHitRenderer.register();
 
 		TimeShiftWaterRunner.register();
 
@@ -115,6 +117,7 @@ public final class TimeLordClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientTimeField.tick();
+			TheWorldRenderer.tick();
 			tickTimeShiftBurst();
 			handleAbilityKeys(client);
 			handleSlowTimeModeSwitch(client);
@@ -130,6 +133,10 @@ public final class TimeLordClient implements ClientModInitializer {
 					ClientTimeField.clear();
 					ClientJudgementCut.clear();
 					KEY_HELD.clear();
+
+					THE_WORLD_ACTIVE = false;
+					TheWorldRenderer.setActive(false);
+					TheWorldHitRenderer.clear();
 
 					TIME_SHIFT_KEY_DOWN = false;
 					TIME_SHIFT_CHARGING = false;
@@ -160,17 +167,167 @@ public final class TimeLordClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(
 				TimeLord.THE_WORLD_STATE_PACKET,
 				(client, handler, buf, responseSender) -> {
-					boolean active = buf.readBoolean();
+
+					int count =
+							buf.readVarInt();
+
+					Set<UUID> activeUsers =
+							new LinkedHashSet<>();
+
+					for (int i = 0; i < count; i++) {
+						activeUsers.add(
+								buf.readUuid()
+						);
+					}
 
 					client.execute(() -> {
-						THE_WORLD_ACTIVE = active;
 
-						updateMonochromeShader(client);
+						boolean wasActive =
+								THE_WORLD_ACTIVE;
+
+						THE_WORLD_ACTIVE =
+								!activeUsers.isEmpty();
+
+						TheWorldClientState
+								.setActiveUsers(
+										activeUsers
+								);
+
+						if (!THE_WORLD_ACTIVE) {
+
+							TheWorldRenderer
+									.setActive(false);
+
+							TheWorldShockwaveRenderer
+									.clear();
+
+							return;
+						}
+
+						if (!wasActive) {
+							return;
+						}
 					});
 				}
 		);
 
-		ClientPlayNetworking.registerGlobalReceiver(TimeLord.TIME_SHIFT_STATE_PACKET,
+		ClientPlayNetworking.registerGlobalReceiver(
+				TimeLord.THE_WORLD_HIT_PACKET,
+				(client, handler, buf, responseSender) -> {
+
+					UUID hitId =
+							buf.readUuid();
+
+					UUID targetId =
+							buf.readUuid();
+
+					UUID attackerId =
+							buf.readUuid();
+
+					Vec3d position =
+							new Vec3d(
+									buf.readDouble(),
+									buf.readDouble(),
+									buf.readDouble()
+							);
+
+					Vec3d attackDirection =
+							new Vec3d(
+									buf.readDouble(),
+									buf.readDouble(),
+									buf.readDouble()
+							);
+
+					client.execute(() ->
+
+							TheWorldHitRenderer.addHit(
+									hitId,
+									targetId,
+									attackerId,
+									position,
+									attackDirection
+							)
+					);
+				}
+		);
+
+		ClientPlayNetworking.registerGlobalReceiver(
+				TimeLord.THE_WORLD_RESOLVE_PACKET,
+				(client, handler, buf, responseSender) -> {
+
+					UUID hitId =
+							buf.readUuid();
+
+					int sequenceIndex =
+							buf.readVarInt();
+
+					int totalHits =
+							buf.readVarInt();
+
+					client.execute(() ->
+
+							TheWorldHitRenderer.resolveHit(
+									hitId,
+									sequenceIndex
+							)
+					);
+				}
+		);
+
+		ClientPlayNetworking.registerGlobalReceiver(
+				TimeLord.THE_WORLD_ACTIVATE_PACKET,
+				(client, handler, buf, responseSender) -> {
+
+					UUID activatorId =
+							buf.readUuid();
+
+					boolean globalTransition =
+							buf.readBoolean();
+
+					client.execute(() -> {
+
+						if (client.player == null)
+							return;
+
+						boolean localActivator =
+								activatorId.equals(
+										client.player
+												.getUuid()
+								);
+
+						if (globalTransition) {
+
+							if (localActivator) {
+
+								TheWorldRenderer
+										.setActive(true);
+
+							} else {
+
+								TheWorldRenderer
+										.setRemoteActive(
+												true
+										);
+
+								TheWorldShockwaveRenderer
+										.start(
+												activatorId
+										);
+							}
+
+							return;
+						}
+
+						TheWorldShockwaveRenderer
+								.start(
+										activatorId
+								);
+					});
+				}
+		);
+
+		ClientPlayNetworking.registerGlobalReceiver(
+				TimeLord.TIME_SHIFT_STATE_PACKET,
 				(client, handler, buf, responseSender) -> {
 					boolean active = buf.readBoolean();
 					int multiplier = buf.readInt();
@@ -383,10 +540,14 @@ public final class TimeLordClient implements ClientModInitializer {
 	}
 
 	public static void updateMonochromeShader(MinecraftClient client) {
-		boolean monochrome = THE_WORLD_ACTIVE || ClientJudgementCut.isMonochrome();
+		if (TheWorldRenderer.isOpening())
+			return;
 
-		if (monochrome) {
-			((GameRendererMixin) client.gameRenderer).timeLord$loadPostProcessor(
+		if (THE_WORLD_ACTIVE)
+			return;
+
+		if (ClientJudgementCut.isMonochrome()) {
+			((GameRendererAccessor) client.gameRenderer).timeLord$loadPostProcessor(
 					new Identifier("minecraft", "shaders/post/desaturate.json"));
 		} else {
 			client.gameRenderer.disablePostProcessor();
@@ -432,4 +593,7 @@ public final class TimeLordClient implements ClientModInitializer {
 		return Math.min(1.0F, Math.max(0.0F, chargeElapsed / (float) chargeWindow));
 	}
 
+	public static boolean isTheWorldActive() {
+		return THE_WORLD_ACTIVE;
+	}
 }

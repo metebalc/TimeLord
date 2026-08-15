@@ -5,7 +5,15 @@
 	"client": [
 		"GameRendererMixin",
 		"TimeShiftFovMixin",
-		"TimeShiftFirstPersonMixin"
+		"TimeShiftFirstPersonMixin",
+		"ClientWorldMixin",
+		"GameRendererAccessor",
+		"RainSplashParticleMixin",
+		"WorldRendererMixin",
+		"ParticleManagerMixin",
+		"SpriteAtlasTextureMixin",
+		"ItemEntityMixin",
+		"ItemEntityRendererMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
