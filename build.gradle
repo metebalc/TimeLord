@@ -12,5 +12,5 @@ allprojects {
 }
 
 tasks.named('build') {
-	dependsOn ':common:build', ':fabric-1.20.1:build', ':fabric-1.21.x:build'
+	dependsOn ':common:build', ':fabric-1.20.1:build', ':fabric-1.21.1:build'
 }

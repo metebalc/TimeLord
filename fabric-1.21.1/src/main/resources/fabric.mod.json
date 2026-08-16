@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "time-lord",
+	"version": "${version}",
+	"name": "Time Lord",
+	"description": "A minimal Minecraft 1.21.1 foundation for the Time Lord mod.",
+	"authors": [
+		"metebalc"
+	],
+	"license": "MIT",
+	"icon": "assets/time-lord/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.timelord.TimeLord"
+		],
+		"client": [
+			"com.timelord.client.TimeLordClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

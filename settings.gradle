@@ -13,4 +13,4 @@ rootProject.name = 'time-lord'
 
 include 'common'
 include 'fabric-1.20.1'
-include 'fabric-1.21.x'
+include 'fabric-1.21.1'
