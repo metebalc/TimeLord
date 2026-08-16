@@ -1,6 +1,8 @@
 package com.timelord.ability;
 
 import com.timelord.network.JudgementCutNetworking;
+import com.timelord.network.AbilityStateNetworking;
+import com.timelord.ability.AbilityManager.AbilityType;
 import com.timelord.ModSounds;
 
 import com.timelord.time.TimeController;
@@ -70,6 +72,7 @@ public final class JudgementCutAbility implements ChargeableAbility {
         );
 
         JudgementCutNetworking.sendStart(world, sphereCenter);
+        AbilityStateNetworking.send(player, AbilityType.DIMENSION_CUT, true, 0, 0);
         return true;
     }
 
@@ -131,6 +134,14 @@ public final class JudgementCutAbility implements ChargeableAbility {
                 )
         );
 
+        AbilityStateNetworking.send(
+                player,
+                AbilityType.DIMENSION_CUT,
+                true,
+                DETONATION_DELAY_TICKS,
+                DETONATION_DELAY_TICKS
+        );
+
         return true;
     }
 
@@ -138,8 +149,10 @@ public final class JudgementCutAbility implements ChargeableAbility {
     public void cancelCharging(ServerPlayerEntity player) {
         ChargeState removed = charging.remove(player.getUuid());
 
-        if (removed != null)
+        if (removed != null) {
             JudgementCutNetworking.sendClear(player.getServerWorld());
+            AbilityStateNetworking.send(player, AbilityType.DIMENSION_CUT, false, 0, 0);
+        }
     }
 
     @Override
@@ -161,6 +174,9 @@ public final class JudgementCutAbility implements ChargeableAbility {
                 JudgementCutNetworking.sendMonochrome(pending.world(), false);
                 JudgementCutNetworking.sendClear(pending.world());
 
+                if (player != null)
+                    AbilityStateNetworking.send(player, AbilityType.DIMENSION_CUT, false, 0, 0);
+
                 iterator.remove();
                 continue;
             }
@@ -180,6 +196,7 @@ public final class JudgementCutAbility implements ChargeableAbility {
 
             JudgementCutNetworking.sendClear(pending.world());
             JudgementCutNetworking.sendMonochrome(pending.world(), false);
+            AbilityStateNetworking.send(player, AbilityType.DIMENSION_CUT, false, 0, 0);
 
             iterator.remove();
         }

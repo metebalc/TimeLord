@@ -33,6 +33,11 @@ public final class TheWorldAbility implements Ability {
     private static final Set<UUID> ACTIVE_PLAYERS =
             new LinkedHashSet<>();
 
+    private static final Map<UUID, Integer> ACTIVE_DURATIONS =
+            new LinkedHashMap<>();
+
+    public static final int MAX_DURATION_TICKS = 10 * 20;
+
     private static final List<PendingHit> PENDING_HITS =
             new ArrayList<>();
 
@@ -71,6 +76,7 @@ public final class TheWorldAbility implements Ability {
 
         if (ACTIVE_PLAYERS.contains(playerId)) {
             ACTIVE_PLAYERS.remove(playerId);
+            ACTIVE_DURATIONS.remove(playerId);
 
             player.sendMessage(
                     Text.literal("The World: OFF"),
@@ -93,6 +99,11 @@ public final class TheWorldAbility implements Ability {
 
         ACTIVE_PLAYERS.add(
                 playerId
+        );
+
+        ACTIVE_DURATIONS.put(
+                playerId,
+                MAX_DURATION_TICKS
         );
 
         player.sendMessage(
@@ -123,7 +134,42 @@ public final class TheWorldAbility implements Ability {
     @Override
     public void tick(MinecraftServer server) {
         removeInvalidActivePlayers(server);
+        tickActiveDurations(server);
         tickResolutions(server);
+    }
+
+    private static void tickActiveDurations(MinecraftServer server) {
+        if (ACTIVE_PLAYERS.isEmpty())
+            return;
+
+        boolean wasTimeStopped = true;
+        boolean changed = false;
+        Iterator<Map.Entry<UUID, Integer>> iterator = ACTIVE_DURATIONS.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Integer> entry = iterator.next();
+            int remaining = entry.getValue() - 1;
+
+            if (remaining <= 0) {
+                ServerPlayerEntity expiredPlayer = server.getPlayerManager().getPlayer(entry.getKey());
+                if (expiredPlayer != null)
+                    expiredPlayer.sendMessage(Text.literal("The World: OFF"), true);
+
+                ACTIVE_PLAYERS.remove(entry.getKey());
+                iterator.remove();
+                changed = true;
+            } else {
+                entry.setValue(remaining);
+            }
+        }
+
+        if (!changed)
+            return;
+
+        if (wasTimeStopped && ACTIVE_PLAYERS.isEmpty())
+            beginPendingHitResolution(server);
+
+        syncState(server);
     }
 
     public static boolean isTimeStopped() {
@@ -225,6 +271,8 @@ public final class TheWorldAbility implements Ability {
                                     || !player.isAlive();
                         }
                 );
+
+        ACTIVE_DURATIONS.keySet().retainAll(ACTIVE_PLAYERS);
 
         if (!changed)
             return;
@@ -705,34 +753,26 @@ public final class TheWorldAbility implements Ability {
                         .getPlayerList()
         ) {
 
-            PacketByteBuf buffer =
-                    PacketByteBufs.create();
-
-            buffer.writeVarInt(
-                    ACTIVE_PLAYERS.size()
-            );
-
-            for (
-                    UUID activePlayerId
-                    :
-                    ACTIVE_PLAYERS
-            ) {
-
-                buffer.writeUuid(
-                        activePlayerId
-                );
-            }
-
-            ServerPlayNetworking.send(
-                    player,
-                    TimeLord.THE_WORLD_STATE_PACKET,
-                    buffer
-            );
+            syncStateTo(player);
         }
+    }
+
+    public static void syncStateTo(ServerPlayerEntity player) {
+        PacketByteBuf buffer = PacketByteBufs.create();
+        buffer.writeVarInt(ACTIVE_PLAYERS.size());
+
+        for (UUID activePlayerId : ACTIVE_PLAYERS) {
+            buffer.writeUuid(activePlayerId);
+            buffer.writeVarInt(ACTIVE_DURATIONS.getOrDefault(activePlayerId, 0));
+        }
+
+        buffer.writeVarInt(MAX_DURATION_TICKS);
+        ServerPlayNetworking.send(player, TimeLord.THE_WORLD_STATE_PACKET, buffer);
     }
 
     public static void reset() {
         ACTIVE_PLAYERS.clear();
+        ACTIVE_DURATIONS.clear();
         PENDING_HITS.clear();
         ACTIVE_RESOLUTIONS.clear();
     }

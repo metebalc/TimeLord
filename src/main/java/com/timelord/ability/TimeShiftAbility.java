@@ -300,6 +300,13 @@ public final class TimeShiftAbility implements Ability {
 
     }
 
+    public static void cancelTransientState(ServerPlayerEntity player) {
+        UUID playerId = player.getUuid();
+        LAUNCH_CHARGES.remove(playerId);
+        CHARGE_POSITIONS.remove(playerId);
+        removeBurst(player);
+    }
+
     private static void tickWaterRunning(MinecraftServer server) {
         for (Map.Entry<UUID, Mode> entry : PLAYER_MODES.entrySet()) {
             UUID playerId = entry.getKey();

@@ -8,9 +8,19 @@ import com.timelord.client.mixin.GameRendererAccessor;
 import com.timelord.client.mixin.GameRendererMixin;
 import com.timelord.client.network.JudgementCutClientNetworking;
 import com.timelord.client.network.TimeFieldClientNetworking;
+import com.timelord.client.network.AbilityStateClientNetworking;
+import com.timelord.client.network.FutureSightClientNetworking;
+import com.timelord.client.network.TimeRewindClientNetworking;
+import com.timelord.client.network.AbilityLoadoutClientNetworking;
 import com.timelord.client.particle.TimeShiftLightningParticle;
 import com.timelord.client.render.*;
+import com.timelord.client.screen.AbilityBookScreen;
 import com.timelord.client.sound.TimeShiftSoundManager;
+import com.timelord.client.state.ClientAbilityState;
+import com.timelord.client.state.ClientFutureSightState;
+import com.timelord.client.state.ClientTimeRewindState;
+import com.timelord.client.state.ClientAbilityLoadoutState;
+import com.timelord.client.hud.AbilityHudRenderer;
 import com.timelord.client.time.ClientTimeField;
 import com.timelord.client.time.TheWorldClientState;
 import com.timelord.client.time.TimeShiftWaterRunner;
@@ -22,7 +32,6 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 
 import net.minecraft.client.MinecraftClient;
@@ -40,26 +49,17 @@ import java.util.*;
 public final class TimeLordClient implements ClientModInitializer {
 	private static final String CATEGORY = "category.time-lord";
 
-	private static final Map<AbilityType, KeyBinding> KEYS = new EnumMap<>(AbilityType.class);
+	private static final int SKILL_SLOT_COUNT = 3;
+	private static final KeyBinding[] SKILL_KEYS = new KeyBinding[SKILL_SLOT_COUNT];
+	private static KeyBinding OPEN_SKILL_MENU_KEY;
 	private static KeyBinding SWITCH_SLOW_MODE_KEY;
-
-	// HUD
-	private static final int RECTANGLE_WIDTH = 20;
-	private static final int RECTANGLE_HEIGHT = 20;
-
-	private static final int BASE_COLOR = 0xFF000000;
-
-	private static final int BORDER_COLOR = 0xFFADADAD;
-
-	private static final int TEXT_COLOR = 0xFFFFFFFF;
-
-	private static final int HUD_LEFT_MARGIN = 10;
-	private static final int HUD_BOTTOM_MARGIN = 10;
-	private static final int SLOT_SPACING = 5;
 
 	// CLIENT STATES
 	private static boolean THE_WORLD_ACTIVE = false;
-	private static final Map<AbilityType, Boolean> KEY_HELD = new EnumMap<>(AbilityType.class);
+	private static final AbilityType[] ACTIVE_INPUT_ABILITIES = new AbilityType[SKILL_SLOT_COUNT];
+	private static final boolean[] SKILL_KEY_HELD = new boolean[SKILL_SLOT_COUNT];
+	private static Integer ACTIVE_CHARGE_SLOT;
+	private static Integer TIME_SHIFT_INPUT_SLOT;
 
 
 	private static boolean TIME_SHIFT_KEY_DOWN = false;
@@ -75,54 +75,47 @@ public final class TimeLordClient implements ClientModInitializer {
 	private static final long TIME_SHIFT_CHARGE_THRESHOLD_MS = 800L;
 	private static final long TIME_SHIFT_MAX_CHARGE_MS = 1000L;
 
-	// HUD ABILITY SLOTS
-	private record AbilitySlot(AbilityType ability, String buttonText, Identifier texture) {}
-
-	private static final Map<AbilityType, Integer> COOLDOWNS = new EnumMap<>(AbilityType.class);
-
-	private static final Identifier SLOW_TIME_DOMAIN_TEXTURE = Identifier.of("time-lord", "textures/domain_32x32.png");
-	private static final Identifier DIMENSION_CUT_TEXTURE = Identifier.of("time-lord", "textures/cuts_32x32.png");
-	private static final Identifier TIME_SHIFT_TEXTURE = Identifier.of("time-lord", "textures/dash_32x32.png");
-	private static final Identifier THE_WORLD_TEXTURE = Identifier.of("time-lord", "textures/hourglass_32x32.png");
-
-	private static final AbilitySlot[] ABILITY_SLOTS = {
-			new AbilitySlot(AbilityType.SLOW_TIME, "Z", SLOW_TIME_DOMAIN_TEXTURE),
-			new AbilitySlot(AbilityType.THE_WORLD, "X", THE_WORLD_TEXTURE),
-			new AbilitySlot(AbilityType.DIMENSION_CUT, "C", DIMENSION_CUT_TEXTURE),
-			new AbilitySlot(AbilityType.TIME_SHIFT, "V", TIME_SHIFT_TEXTURE)
-	};
-
 	@Override
 	public void onInitializeClient() {
-		register(AbilityType.SLOW_TIME, "key.time-lord.slow_time", GLFW.GLFW_KEY_Z);
-		register(AbilityType.THE_WORLD, "key.time-lord.the_world", GLFW.GLFW_KEY_X);
-		register(AbilityType.DIMENSION_CUT, "key.time-lord.dimension_cut", GLFW.GLFW_KEY_C);
-		register(AbilityType.TIME_SHIFT, "key.time-lord.time_shift", GLFW.GLFW_KEY_V);
+		SKILL_KEYS[0] = registerSkillKey("key.time-lord.use_skill_1", GLFW.GLFW_KEY_Z);
+		SKILL_KEYS[1] = registerSkillKey("key.time-lord.use_skill_2", GLFW.GLFW_KEY_X);
+		SKILL_KEYS[2] = registerSkillKey("key.time-lord.use_skill_3", GLFW.GLFW_KEY_C);
+		OPEN_SKILL_MENU_KEY = KeyBindingHelper.registerKeyBinding(
+				new KeyBinding("key.time-lord.open_skill_menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, CATEGORY));
 
 		SWITCH_SLOW_MODE_KEY = KeyBindingHelper.registerKeyBinding(
 				new KeyBinding("key.time-lord.switch_slow_mode", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, CATEGORY));
 
 		TimeFieldClientNetworking.register();
 		JudgementCutClientNetworking.register();
+		AbilityStateClientNetworking.register();
+		FutureSightClientNetworking.register();
+		TimeRewindClientNetworking.register();
+		AbilityLoadoutClientNetworking.register();
 
 		SlowTimeFieldRenderer.register();
 		JudgementCutSlashRenderer.register();
 		TimeShiftRenderer.register();
+		TimeRewindRenderer.register();
+		FutureSightRenderer.register();
 		TheWorldShockwaveRenderer.register();
 		TheWorldHitRenderer.register();
 
 		TimeShiftWaterRunner.register();
+		AbilityHudRenderer.register();
 
 		ParticleFactoryRegistry.getInstance().register(ModParticles.TIME_SHIFT_LIGHTNING, TimeShiftLightningParticle.Factory::new);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientTimeField.tick();
+			TheWorldClientState.tick();
+			ClientAbilityState.tick();
 			TheWorldRenderer.tick();
 			tickTimeShiftBurst();
-			handleAbilityKeys(client);
+			handleSkillMenu(client);
+			handleEquippedAbilityKeys(client);
 			handleSlowTimeModeSwitch(client);
 
-			COOLDOWNS.replaceAll((ability, cooldown) -> Math.max(0, cooldown - 1));
 			}
 		);
 
@@ -132,7 +125,15 @@ public final class TimeLordClient implements ClientModInitializer {
 
 					ClientTimeField.clear();
 					ClientJudgementCut.clear();
-					KEY_HELD.clear();
+					ClientAbilityState.clear();
+					ClientFutureSightState.clear();
+					ClientTimeRewindState.clear();
+					TheWorldClientState.clear();
+					ClientAbilityLoadoutState.reset();
+					Arrays.fill(ACTIVE_INPUT_ABILITIES, null);
+					Arrays.fill(SKILL_KEY_HELD, false);
+					ACTIVE_CHARGE_SLOT = null;
+					TIME_SHIFT_INPUT_SLOT = null;
 
 					THE_WORLD_ACTIVE = false;
 					TheWorldRenderer.setActive(false);
@@ -158,7 +159,7 @@ public final class TimeLordClient implements ClientModInitializer {
 
 					client.execute(() -> {
 						if (ability != null) {
-							COOLDOWNS.put(ability, cooldown);
+							ClientAbilityState.setCooldown(ability, cooldown);
 						}
 					});
 				}
@@ -171,14 +172,15 @@ public final class TimeLordClient implements ClientModInitializer {
 					int count =
 							buf.readVarInt();
 
-					Set<UUID> activeUsers =
-							new LinkedHashSet<>();
+					Map<UUID, Integer> activeUsers =
+							new LinkedHashMap<>();
 
 					for (int i = 0; i < count; i++) {
-						activeUsers.add(
-								buf.readUuid()
-						);
+						UUID playerId = buf.readUuid();
+						activeUsers.put(playerId, buf.readVarInt());
 					}
+
+					int maxDurationTicks = buf.readVarInt();
 
 					client.execute(() -> {
 
@@ -190,7 +192,8 @@ public final class TimeLordClient implements ClientModInitializer {
 
 						TheWorldClientState
 								.setActiveUsers(
-										activeUsers
+										activeUsers,
+										maxDurationTicks
 								);
 
 						if (!THE_WORLD_ACTIVE) {
@@ -369,67 +372,95 @@ public final class TimeLordClient implements ClientModInitializer {
 				}
 		);
 
-		HudRenderCallback.EVENT.register((drawContext, tickDelta) -> renderHud(drawContext));
 	}
 
-	private static void handleAbilityKeys(MinecraftClient client) {
-		KEYS.forEach((ability, key) -> {
-			if (client.player == null)
-				return;
-
-			if (ability == AbilityType.TIME_SHIFT) {
-				handleTimeShiftKey(key);
-				return;
-			}
-
-			if (!ability.isChargeable()) {
-				while (key.wasPressed()) {
-					if (!ClientPlayNetworking.canSend(TimeLord.ACTIVATE_ABILITY_PACKET))
-						continue;
-
-					PacketByteBuf buffer = PacketByteBufs.create();
-
-					buffer.writeByte(ability.networkId());
-
-					ClientPlayNetworking.send(TimeLord.ACTIVATE_ABILITY_PACKET, buffer);
-				}
-
-				return;
-			}
-
-			boolean held = key.isPressed();
-			boolean wasHeld = KEY_HELD.getOrDefault(ability, false);
-
-			if (held && !wasHeld) {
-
-				if (ClientPlayNetworking.canSend(TimeLord.START_CHARGE_PACKET)) {
-					PacketByteBuf buffer = PacketByteBufs.create();
-					buffer.writeByte(ability.networkId());
-					ClientPlayNetworking.send(TimeLord.START_CHARGE_PACKET, buffer);
-				}
-			}
-
-			if (!held && wasHeld) {
-				if (ClientPlayNetworking.canSend(TimeLord.RELEASE_CHARGE_PACKET))
-					ClientPlayNetworking.send(TimeLord.RELEASE_CHARGE_PACKET, PacketByteBufs.empty());
-			}
-			KEY_HELD.put(ability, held);
-		});
+	private static void handleSkillMenu(MinecraftClient client) {
+		while (OPEN_SKILL_MENU_KEY.wasPressed()) {
+			boolean skillInUse = Arrays.stream(ACTIVE_INPUT_ABILITIES).anyMatch(Objects::nonNull);
+			if (client.player != null && client.currentScreen == null && !skillInUse)
+				client.setScreen(new AbilityBookScreen());
+		}
 	}
 
-	private static void handleTimeShiftKey(KeyBinding key) {
-		boolean held = key.isPressed();
-		long now = System.currentTimeMillis();
+	private static void handleEquippedAbilityKeys(MinecraftClient client) {
+		if (client.player == null)
+			return;
 
-		if (held && !TIME_SHIFT_KEY_DOWN) {
-			TIME_SHIFT_KEY_DOWN = true;
-			TIME_SHIFT_CHARGING = false;
-			TIME_SHIFT_CHARGE_PACKET_SENT = false;
-			TIME_SHIFT_PRESS_START_MS = now;
+		for (int slot = 0; slot < SKILL_SLOT_COUNT; slot++) {
+			boolean held = SKILL_KEYS[slot].isPressed();
+
+			if (client.currentScreen != null) {
+				SKILL_KEY_HELD[slot] = held;
+				continue;
+			}
+
+			if (held && !SKILL_KEY_HELD[slot])
+				startSkillInput(slot);
+
+			if (held && TIME_SHIFT_INPUT_SLOT != null && TIME_SHIFT_INPUT_SLOT == slot)
+				continueTimeShiftInput();
+
+			if (!held && SKILL_KEY_HELD[slot])
+				releaseSkillInput(slot);
+
+			SKILL_KEY_HELD[slot] = held;
+		}
+	}
+
+	private static void startSkillInput(int slot) {
+		AbilityType ability = ClientAbilityLoadoutState.getEquipped(slot);
+		ACTIVE_INPUT_ABILITIES[slot] = ability;
+
+		if (ability == AbilityType.TIME_SHIFT) {
+			if (TIME_SHIFT_INPUT_SLOT != null) {
+				ACTIVE_INPUT_ABILITIES[slot] = null;
+				return;
+			}
+
+			TIME_SHIFT_INPUT_SLOT = slot;
+			startTimeShiftInput();
 			return;
 		}
 
-		if (held && TIME_SHIFT_KEY_DOWN) {
+		if (ability.isChargeable()) {
+			if (ACTIVE_CHARGE_SLOT != null) {
+				ACTIVE_INPUT_ABILITIES[slot] = null;
+				return;
+			}
+
+			ACTIVE_CHARGE_SLOT = slot;
+			startCharging(ability);
+			return;
+		}
+
+		activate(ability);
+	}
+
+	private static void releaseSkillInput(int slot) {
+		AbilityType ability = ACTIVE_INPUT_ABILITIES[slot];
+
+		if (ability == AbilityType.TIME_SHIFT && TIME_SHIFT_INPUT_SLOT != null && TIME_SHIFT_INPUT_SLOT == slot) {
+			releaseTimeShiftInput();
+			TIME_SHIFT_INPUT_SLOT = null;
+		} else if (ability != null && ability.isChargeable() && ACTIVE_CHARGE_SLOT != null && ACTIVE_CHARGE_SLOT == slot) {
+			releaseCharging();
+			ACTIVE_CHARGE_SLOT = null;
+		}
+
+		ACTIVE_INPUT_ABILITIES[slot] = null;
+	}
+
+	private static void startTimeShiftInput() {
+		long now = System.currentTimeMillis();
+		TIME_SHIFT_KEY_DOWN = true;
+		TIME_SHIFT_CHARGING = false;
+		TIME_SHIFT_CHARGE_PACKET_SENT = false;
+		TIME_SHIFT_PRESS_START_MS = now;
+	}
+
+	private static void continueTimeShiftInput() {
+		if (TIME_SHIFT_KEY_DOWN) {
+			long now = System.currentTimeMillis();
 			long elapsed = now - TIME_SHIFT_PRESS_START_MS;
 
 			if (elapsed >= TIME_SHIFT_CHARGE_THRESHOLD_MS) {
@@ -446,10 +477,12 @@ public final class TimeLordClient implements ClientModInitializer {
 				}
 			}
 
-			return;
 		}
+	}
 
-		if (!held && TIME_SHIFT_KEY_DOWN) {
+	private static void releaseTimeShiftInput() {
+		if (TIME_SHIFT_KEY_DOWN) {
+			long now = System.currentTimeMillis();
 			long elapsed = now - TIME_SHIFT_PRESS_START_MS;
 
 			if (TIME_SHIFT_CHARGING && TIME_SHIFT_CHARGE_PACKET_SENT) {
@@ -470,6 +503,29 @@ public final class TimeLordClient implements ClientModInitializer {
 			TIME_SHIFT_CHARGE_PACKET_SENT = false;
 			TIME_SHIFT_PRESS_START_MS = 0L;
 		}
+	}
+
+	private static void activate(AbilityType ability) {
+		if (!ClientPlayNetworking.canSend(TimeLord.ACTIVATE_ABILITY_PACKET))
+			return;
+
+		PacketByteBuf buffer = PacketByteBufs.create();
+		buffer.writeByte(ability.networkId());
+		ClientPlayNetworking.send(TimeLord.ACTIVATE_ABILITY_PACKET, buffer);
+	}
+
+	private static void startCharging(AbilityType ability) {
+		if (!ClientPlayNetworking.canSend(TimeLord.START_CHARGE_PACKET))
+			return;
+
+		PacketByteBuf buffer = PacketByteBufs.create();
+		buffer.writeByte(ability.networkId());
+		ClientPlayNetworking.send(TimeLord.START_CHARGE_PACKET, buffer);
+	}
+
+	private static void releaseCharging() {
+		if (ClientPlayNetworking.canSend(TimeLord.RELEASE_CHARGE_PACKET))
+			ClientPlayNetworking.send(TimeLord.RELEASE_CHARGE_PACKET, PacketByteBufs.empty());
 	}
 
 	private static void tickTimeShiftBurst() {
@@ -494,49 +550,28 @@ public final class TimeLordClient implements ClientModInitializer {
 		}
 	}
 
-	private static void renderHud(DrawContext drawContext) {
-		MinecraftClient client = MinecraftClient.getInstance();
-
-		int y = client.getWindow().getScaledHeight() - RECTANGLE_HEIGHT - HUD_BOTTOM_MARGIN;
-		int countEachItem = 0;
-
-		for (AbilitySlot slot : ABILITY_SLOTS) {
-			int x = HUD_LEFT_MARGIN + countEachItem++ * (RECTANGLE_WIDTH + SLOT_SPACING);
-
-			drawContext.fill(x, y, x + RECTANGLE_WIDTH, y + RECTANGLE_HEIGHT, BASE_COLOR);
-			drawContext.drawTexture(slot.texture(), x, y, RECTANGLE_WIDTH, RECTANGLE_HEIGHT, 0, 0, 32, 32, 32, 32);
-			drawContext.drawBorder(x, y, RECTANGLE_WIDTH, RECTANGLE_HEIGHT, BORDER_COLOR);
-			int cooldown = COOLDOWNS.getOrDefault(slot.ability(), 0);
-
-			if (cooldown > 0) {
-				int seconds = (cooldown + 19) / 20;
-				drawCenteredText(drawContext, client, Integer.toString(seconds), x, y, RECTANGLE_WIDTH, RECTANGLE_HEIGHT, true);
-			} else {
-				drawCenteredText(drawContext, client, slot.buttonText(), x, y, RECTANGLE_WIDTH, RECTANGLE_HEIGHT, true);
-			}
-		}
+	private static KeyBinding registerSkillKey(String translationKey, int glfwKey) {
+		return KeyBindingHelper.registerKeyBinding(
+				new KeyBinding(translationKey, InputUtil.Type.KEYSYM, glfwKey, CATEGORY));
 	}
 
-	private static void drawCenteredText(
-			DrawContext drawContext,
-			MinecraftClient client,
-			String text,
-			int x,
-			int y,
-			int width,
-			int height,
-			boolean shadow
-	) {
-		int textWidth = client.textRenderer.getWidth(text);
-		int textX = x + (width - textWidth) / 2;
-		int textY = y + (height - client.textRenderer.fontHeight) / 2 + 1;
-
-		drawContext.drawText(client.textRenderer, text, textX, textY, TEXT_COLOR, shadow);
+	public static AbilityType getEquippedAbility(int slot) {
+		return ClientAbilityLoadoutState.getEquipped(slot);
 	}
 
-	private static void register(AbilityType ability, String translationKey, int glfwKey) {
-		KeyBinding key = new KeyBinding(translationKey, InputUtil.Type.KEYSYM, glfwKey, CATEGORY);
-		KEYS.put(ability, KeyBindingHelper.registerKeyBinding(key));
+	public static void equipAbility(int slot, AbilityType ability) {
+		AbilityLoadoutClientNetworking.requestEquip(slot, ability);
+	}
+
+	public static String getSkillKeyName(int slot) {
+		if (slot < 0 || slot >= SKILL_SLOT_COUNT)
+			throw new IndexOutOfBoundsException("Invalid skill slot: " + slot);
+
+		return SKILL_KEYS[slot].getBoundKeyLocalizedText().getString();
+	}
+
+	public static Identifier getAbilityTexture(AbilityType ability) {
+		return AbilityIconRegistry.get(ability);
 	}
 
 	public static void updateMonochromeShader(MinecraftClient client) {
