@@ -8,6 +8,8 @@
 		"TimeShiftFirstPersonMixin",
 		"ClientWorldMixin",
 		"GameRendererAccessor",
+		"LimbAnimatorAccessor",
+		"LivingEntityRendererMixin",
 		"RainSplashParticleMixin",
 		"WorldRendererMixin",
 		"ParticleManagerMixin",

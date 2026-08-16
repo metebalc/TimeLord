@@ -27,7 +27,8 @@ The currently selected mode is shared between Slow Time activations.
 
 **Default controls**
 
-- `Z` — Activate Slow Time
+- `G` — Open the skill menu and equip Slow Time to `Z`, `X`, or `C`
+- Press the key for the slot containing Slow Time to activate it
 - `R` — Switch Slow Time mode
 
 ---
@@ -50,7 +51,7 @@ Attacks against frozen entities are stored during stopped time and are applied w
 
 **Default control**
 
-- `X` — Toggle The World
+- Equip The World to a skill slot, then press its key to toggle it
 
 ---
 
@@ -67,7 +68,7 @@ A chargeable space-cutting ability that creates a dimensional field around the p
 
 **Default control**
 
-* `C` — Hold to charge, release to activate
+* Equip Judgement Cut to a skill slot, then hold its key to charge and release to activate
 
 ---
 
@@ -97,8 +98,37 @@ Additional movement features:
 
 **Default control**
 
-* `V` — Tap to cycle speed mode
-* `V` — Hold to charge, release to burst
+* Equip Time Shift to a skill slot
+* Tap its key to cycle speed mode
+* Hold its key to charge, then release to burst
+
+---
+
+### Time Rewind
+
+Return to your server-recorded state from approximately three seconds earlier.
+
+Time Rewind restores position, rotation, velocity, and health. It does not rewind inventory, experience, blocks, dimensions, or other ability state. If the original position is obstructed, the server searches nearby for a safe destination; the ability fails without consuming its cooldown when no safe destination exists.
+
+**Cooldown:** 15 seconds
+
+---
+
+### Future Sight
+
+Toggle a lightweight threat view that highlights projectiles on a collision course and hostile mobs that are targeting or clearly approaching you. Dangerous projectiles use a stronger red highlight while mobs use amber.
+
+Turning Future Sight off starts its 20-second cooldown. It cannot be enabled again until the cooldown expires.
+
+---
+
+### Ability HUD
+
+The compact left-side HUD displays the three equipped ability icons, radial cooldowns, active-state borders, the current Time Shift multiplier, and The World's remaining duration.
+
+Press `G` to open the two-page ability grimoire. Select a `Z`, `X`, or `C` bookmark, then click an ability to equip it. The server validates and synchronizes the loadout. Entries are grouped into Time Control, Mobility, Perception, and Combat pages so additional abilities can be added without expanding a fixed grid.
+
+The World now has a maximum duration of 10 seconds per active player. Multiple players can still participate in stopped time, and the global stop ends when the final active user's duration expires.
 
 ---
 ## Configuration
@@ -113,11 +143,11 @@ Default controls:
 
 | Ability | Key |
 |---|---|
-| Slow Time | `Z` |
+| Open Skill Menu | `G` |
+| Use Skill Slot 1 | `Z` |
+| Use Skill Slot 2 | `X` |
+| Use Skill Slot 3 | `C` |
 | Switch Slow Time Mode | `R` |
-| The World | `X` |
-| Dimension Cut | `C` |
-| Time Shift | `V` |
 
 ### Server side:
 

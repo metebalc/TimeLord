@@ -26,6 +26,8 @@ public final class AbilityManager {
         ABILITIES.put(AbilityType.THE_WORLD, new TheWorldAbility());
         ABILITIES.put(AbilityType.DIMENSION_CUT, new JudgementCutAbility());
         ABILITIES.put(AbilityType.TIME_SHIFT, new TimeShiftAbility());
+        ABILITIES.put(AbilityType.TIME_REWIND, new TimeRewindAbility());
+        ABILITIES.put(AbilityType.FUTURE_SIGHT, new FutureSightAbility());
     }
 
     private AbilityManager() {}
@@ -41,8 +43,26 @@ public final class AbilityManager {
         if (ability == null)
             return;
 
+        if (!AbilityLoadoutManager.isEquipped(player, type))
+            return;
+
         if (ability instanceof ChargeableAbility)
             return;
+
+        if (ability instanceof ToggleableAbility toggleable) {
+            if (toggleable.isActive(player)) {
+                if (toggleable.tryActivate(player))
+                    startCooldown(player, type);
+
+                return;
+            }
+
+            if (isOnCooldown(player, type))
+                return;
+
+            toggleable.tryActivate(player);
+            return;
+        }
 
         if (type == AbilityType.TIME_SHIFT || type == AbilityType.THE_WORLD) {
             ability.activate(player);
@@ -52,11 +72,21 @@ public final class AbilityManager {
         if (isOnCooldown(player, type))
             return;
 
-        ability.activate(player);
+        boolean activated;
+
+        if (ability instanceof ConditionalAbility conditional) {
+            activated = conditional.tryActivate(player);
+        } else {
+            ability.activate(player);
+            activated = true;
+        }
+
+        if (!activated)
+            return;
 
         startCooldown(player, type);
 
-        player.sendMessage(Text.literal(type.displayName()), true);
+        player.sendMessage(Text.translatable(type.translationKey()), true);
     }
 
     public static void startCharging(ServerPlayerEntity player, int networkId) {
@@ -68,6 +98,9 @@ public final class AbilityManager {
         Ability ability = ABILITIES.get(type);
 
         if (!(ability instanceof ChargeableAbility chargeable))
+            return;
+
+        if (!AbilityLoadoutManager.isEquipped(player, type))
             return;
 
         if (ACTIVE_CHARGES.containsKey(player.getUuid()))
@@ -102,7 +135,7 @@ public final class AbilityManager {
 
         startCooldown(player, type);
 
-        player.sendMessage(Text.literal(type.displayName()), true);
+        player.sendMessage(Text.translatable(type.translationKey()), true);
     }
 
     public static void cancelCharging(ServerPlayerEntity player) {
@@ -144,6 +177,15 @@ public final class AbilityManager {
         return ACTIVE_CHARGES.containsKey(player.getUuid());
     }
 
+    public static void deactivateIfActive(ServerPlayerEntity player, AbilityType type) {
+        Ability ability = ABILITIES.get(type);
+
+        if (ability instanceof ToggleableAbility toggleable && toggleable.isActive(player)) {
+            if (toggleable.tryActivate(player))
+                startCooldown(player, type);
+        }
+    }
+
     private static boolean canUseAbility(ServerPlayerEntity player, AbilityType type) {
         return type != null && !player.isSpectator() && player.isAlive();
     }
@@ -180,11 +222,32 @@ public final class AbilityManager {
         ServerPlayNetworking.send(player, TimeLord.COOLDOWN_PACKET, buffer);
     }
 
+    public static void syncCooldowns(ServerPlayerEntity player) {
+        EnumMap<AbilityType, Long> playerCooldowns = COOLDOWNS.get(player.getUuid());
+        if (playerCooldowns == null)
+            return;
+
+        long now = player.getServerWorld().getTime();
+
+        for (Map.Entry<AbilityType, Long> entry : playerCooldowns.entrySet()) {
+            int remaining = (int) Math.max(0L, entry.getValue() - now);
+            if (remaining <= 0)
+                continue;
+
+            PacketByteBuf buffer = PacketByteBufs.create();
+            buffer.writeByte(entry.getKey().networkId());
+            buffer.writeInt(remaining);
+            ServerPlayNetworking.send(player, TimeLord.COOLDOWN_PACKET, buffer);
+        }
+    }
+
     public enum AbilityType {
         SLOW_TIME(0, 8 * 20, "Slow Time", false),
         THE_WORLD(1, 0, "The World", false),
         DIMENSION_CUT(2, 4 * 20, "The Judgement Cut", true),
-        TIME_SHIFT(3, 0, "Time Shift", false);
+        TIME_SHIFT(3, 0, "Time Shift", false),
+        TIME_REWIND(4, 15 * 20, "Time Rewind", false),
+        FUTURE_SIGHT(5, 20 * 20, "Future Sight", false);
 
         private final int networkId;
         private final int cooldownTicks;
@@ -208,6 +271,17 @@ public final class AbilityManager {
 
         public String displayName() {
             return displayName;
+        }
+
+        public String translationKey() {
+            return switch (this) {
+                case SLOW_TIME -> "ability.time-lord.slow_time";
+                case THE_WORLD -> "ability.time-lord.the_world";
+                case DIMENSION_CUT -> "ability.time-lord.dimension_cut";
+                case TIME_SHIFT -> "ability.time-lord.time_shift";
+                case TIME_REWIND -> "ability.time-lord.time_rewind";
+                case FUTURE_SIGHT -> "ability.time-lord.future_sight";
+            };
         }
 
         public boolean isChargeable() {

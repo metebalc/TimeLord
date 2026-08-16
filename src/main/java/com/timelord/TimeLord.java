@@ -3,10 +3,16 @@ package com.timelord;
 import com.timelord.ability.AbilityManager;
 import com.timelord.ability.SlowTimeAbility;
 import com.timelord.ability.TimeShiftAbility;
+import com.timelord.ability.TheWorldAbility;
+import com.timelord.ability.FutureSightAbility;
+import com.timelord.ability.AbilityLoadoutManager;
+import com.timelord.network.AbilityLoadoutNetworking;
 import com.timelord.time.TimeController;
+import com.timelord.rewind.PlayerStateHistory;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 import net.minecraft.util.Identifier;
@@ -42,6 +48,19 @@ public final class TimeLord implements ModInitializer {
 		registerAbilityNetworking();
 		registerTimeShiftNetworking();
 		registerServerTick();
+		AbilityLoadoutNetworking.registerServerReceiver();
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			server.execute(() -> {
+				AbilityLoadoutManager.sync(handler.player);
+				AbilityManager.syncCooldowns(handler.player);
+				TheWorldAbility.syncStateTo(handler.player);
+			});
+		});
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			AbilityManager.cancelCharging(handler.player);
+			FutureSightAbility.clear(handler.player.getUuid());
+			TimeShiftAbility.cancelTransientState(handler.player);
+		});
 	}
 
 	private static void registerAbilityNetworking() {
@@ -121,7 +140,8 @@ public final class TimeLord implements ModInitializer {
 				) -> {
 
 					server.execute(() -> {
-						TimeShiftAbility.startLaunchCharge(player);
+						if (AbilityLoadoutManager.isEquipped(player, AbilityManager.AbilityType.TIME_SHIFT))
+							TimeShiftAbility.startLaunchCharge(player);
 					});
 				}
 		);
@@ -146,6 +166,7 @@ public final class TimeLord implements ModInitializer {
 	private static void registerServerTick() {
 		ServerTickEvents.END_SERVER_TICK.register(
 				server -> {
+					PlayerStateHistory.tick(server);
 					TimeController.tick(server);
 					AbilityManager.tick(server);
 				}

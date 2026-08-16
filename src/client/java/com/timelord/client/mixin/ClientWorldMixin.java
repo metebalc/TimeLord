@@ -104,6 +104,8 @@ public abstract class ClientWorldMixin {
 
             living.lastHandSwingProgress =
                     state.handSwingProgress();
+
+            timeLord$restoreLimbAnimation(living, state);
         }
     }
 
@@ -163,6 +165,22 @@ public abstract class ClientWorldMixin {
 
         entity.age =
                 state.age();
+
+        if (entity instanceof LivingEntity living)
+            timeLord$restoreLimbAnimation(living, state);
+    }
+
+    @Unique
+    private static void timeLord$restoreLimbAnimation(
+            LivingEntity living,
+            FrozenEntityState state
+    ) {
+        LimbAnimatorAccessor accessor =
+                (LimbAnimatorAccessor) living.limbAnimator;
+
+        accessor.timeLord$setPrevSpeed(state.limbPrevSpeed());
+        accessor.timeLord$setSpeed(state.limbSpeed());
+        accessor.timeLord$setPos(state.limbPosition());
     }
 
     @Unique
@@ -174,6 +192,9 @@ public abstract class ClientWorldMixin {
             float bodyYaw,
             float headYaw,
             float handSwingProgress,
+            float limbPrevSpeed,
+            float limbSpeed,
+            float limbPosition,
             int age
     ) {
 
@@ -189,6 +210,15 @@ public abstract class ClientWorldMixin {
             float handSwingProgress =
                     0.0F;
 
+            float limbPrevSpeed =
+                    0.0F;
+
+            float limbSpeed =
+                    0.0F;
+
+            float limbPosition =
+                    0.0F;
+
             if (entity instanceof LivingEntity living) {
                 bodyYaw =
                         living.bodyYaw;
@@ -198,6 +228,18 @@ public abstract class ClientWorldMixin {
 
                 handSwingProgress =
                         living.handSwingProgress;
+
+                LimbAnimatorAccessor accessor =
+                        (LimbAnimatorAccessor) living.limbAnimator;
+
+                limbPrevSpeed =
+                        accessor.timeLord$getPrevSpeed();
+
+                limbSpeed =
+                        accessor.timeLord$getSpeed();
+
+                limbPosition =
+                        accessor.timeLord$getPos();
             }
 
             return new FrozenEntityState(
@@ -208,6 +250,9 @@ public abstract class ClientWorldMixin {
                     bodyYaw,
                     headYaw,
                     handSwingProgress,
+                    limbPrevSpeed,
+                    limbSpeed,
+                    limbPosition,
                     entity.age
             );
         }
