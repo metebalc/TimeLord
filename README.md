@@ -104,7 +104,7 @@ Additional movement features:
 
 ---
 
-### Time Rewind
+### ![Time Rewind](.github/rewind_32x32.png) Time Rewind
 
 Return to your server-recorded state from approximately three seconds earlier.
 
@@ -114,7 +114,7 @@ Time Rewind restores position, rotation, velocity, and health. It does not rewin
 
 ---
 
-### Future Sight
+### ![Future Sight](.github/future_sight_32x32.png) Future Sight
 
 Toggle a lightweight threat view that highlights projectiles on a collision course and hostile mobs that are targeting or clearly approaching you. Dangerous projectiles use a stronger red highlight while mobs use amber.
 
@@ -178,9 +178,24 @@ For multiplayer, install the mod and Fabric API on both the server and connectin
 Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/metebalc/TimeLord
 cd time-lord
 ```
+
+Build all modules and run their tests:
+
+```bash
+./gradlew build
+```
+
+The remapped Minecraft 1.20.1 mod is written to
+`fabric-1.20.1/build/libs/`.
+
+The repository contains two active modules and one future-port placeholder:
+
+- `common`: Java 17 gameplay models, state, protocol messages, and logic with no Minecraft or Fabric dependency.
+- `fabric-1.20.1`: the Fabric/Yarn 1.20.1 adapters, networking, mixins, rendering, entrypoints, and resources.
+- `fabric-1.21.x`: a non-runnable Java 21 placeholder that depends on `common`; no Minecraft 1.21 port has started.
 
 ## Bug Reports
 
