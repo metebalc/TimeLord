@@ -2,14 +2,16 @@
 
 <div align="center">
 
-<a href="">![Java 17](https://img.shields.io/badge/Java%2017-ee9258?logo=coffeescript&logoColor=ffffff&labelColor=606060&style=flat-square)</a>
+<a href="">![Java 17 and 21](https://img.shields.io/badge/Java-17%20%7C%2021-ee9258?logo=coffeescript&logoColor=ffffff&labelColor=606060&style=flat-square)</a>
 <a href="">![Environment: Client & Server](https://img.shields.io/badge/environment-Client%20&%20Server-1976d2?style=flat-square)</a>
-<a href="">![Minecraft 1.20.1](https://img.shields.io/badge/Minecraft-1.20.1-62b47a?style=flat-square)</a>
+<a href="">![Minecraft 1.20.1 and 1.21.1](https://img.shields.io/badge/Minecraft-1.20.1%20%7C%201.21.1-62b47a?style=flat-square)</a>
 <a href="">![Fabric](https://img.shields.io/badge/Loader-Fabric-d7c49e?style=flat-square)</a>
 
 </div>
 
 Time Lord is a Fabric mod for Minecraft 1.20.1 that gives the player several time and space manipulation abilities, including slowing nearby entities, stopping time, extreme movement speed, and cutting through space.
+
+The Minecraft 1.21.1 module currently provides only a clean, launchable Time Lord foundation. Gameplay abilities have not yet been ported to 1.21.1.
 
 ## Features
 
@@ -188,14 +190,14 @@ Build all modules and run their tests:
 ./gradlew build
 ```
 
-The remapped Minecraft 1.20.1 mod is written to
-`fabric-1.20.1/build/libs/`.
+The remapped mods are written to `fabric-1.20.1/build/libs/` and
+`fabric-1.21.1/build/libs/`.
 
-The repository contains two active modules and one future-port placeholder:
+The repository contains three Gradle subprojects:
 
 - `common`: Java 17 gameplay models, state, protocol messages, and logic with no Minecraft or Fabric dependency.
 - `fabric-1.20.1`: the Fabric/Yarn 1.20.1 adapters, networking, mixins, rendering, entrypoints, and resources.
-- `fabric-1.21.x`: a non-runnable Java 21 placeholder that depends on `common`; no Minecraft 1.21 port has started.
+- `fabric-1.21.1`: a minimal Fabric/Yarn 1.21.1 module with Java 21 entrypoints and no ported gameplay, mixins, rendering, or networking.
 
 ## Bug Reports
 

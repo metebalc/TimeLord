@@ -1,0 +1,76 @@
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_1_21_1_version}"
+	id 'maven-publish'
+}
+
+base {
+	archivesName = 'time-lord'
+}
+
+repositories {
+	// Loom supplies the Minecraft and Fabric repositories.
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"time-lord" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_1_21_1_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_1_21_1_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_1_21_1_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_1_21_1_version}"
+
+	implementation project(':common')
+	include project(':common')
+
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+	useJUnitPlatform()
+}
+
+processResources {
+	inputs.property 'version', project.version
+
+	filesMatching('fabric.mod.json') {
+		expand 'version': project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.release = 21
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+	from(rootProject.file('LICENSE')) {
+		rename { "${it}_${base.archivesName.get()}" }
+	}
+}
+
+publishing {
+	publications {
+		create('mavenJava', MavenPublication) {
+			from components.java
+		}
+	}
+}

@@ -1,0 +1,37 @@
+{
+  "slow_time": {
+    "sounds": [
+      "time-lord:slow_time"
+    ]
+  },
+  "the_world": {
+    "sounds": [
+      "time-lord:the_world"
+    ]
+  },
+  "judgement_charge": {
+    "sounds": [
+      "time-lord:judgement_charge"
+    ]
+  },
+  "judgement_release": {
+    "sounds": [
+      "time-lord:judgement_release"
+    ]
+  },
+  "judgement_detonate": {
+    "sounds": [
+      "time-lord:judgement_detonate"
+    ]
+  },
+    "time_shift_charge": {
+      "sounds": [
+        "time-lord:time_shift_charge"
+      ]
+    },
+    "time_shift_boom": {
+      "sounds": [
+        "time-lord:time_shift_boom"
+      ]
+    }
+}
