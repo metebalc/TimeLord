@@ -31,7 +31,7 @@ class MadeInHeavenCurvesTest {
     @Test
     void visualCurveHitsTargetsAndRemainsMonotone() {
         int[] ticks = {0, 200, 400, 600, 800, 1000, 1200};
-        double[] factors = {1.0D, 3.0D, 12.0D, 45.0D, 100.0D, 100.0D, 100.0D};
+        double[] factors = {1.0D, 50.0D, 100.0D, 400.0D, 1100.0D, 1600.0D, 2500.0D};
 
         for (int i = 0; i < ticks.length; i++)
             assertEquals(factors[i], MadeInHeavenCurves.visualWorldFactor(ticks[i]), EPSILON);
