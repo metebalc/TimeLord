@@ -14,6 +14,7 @@ public final class PacketIds {
     public static final Identifier EQUIP_ABILITY = id(PacketChannels.EQUIP_ABILITY);
     public static final Identifier ABILITY_LOADOUT = id(PacketChannels.ABILITY_LOADOUT);
     public static final Identifier ABILITY_STATE = id(PacketChannels.ABILITY_STATE);
+    public static final Identifier MADE_IN_HEAVEN_STATE = id(PacketChannels.MADE_IN_HEAVEN_STATE);
     public static final Identifier THE_WORLD_STATE = id(PacketChannels.THE_WORLD_STATE);
     public static final Identifier THE_WORLD_HIT = id(PacketChannels.THE_WORLD_HIT);
     public static final Identifier THE_WORLD_RESOLVE = id(PacketChannels.THE_WORLD_RESOLVE);

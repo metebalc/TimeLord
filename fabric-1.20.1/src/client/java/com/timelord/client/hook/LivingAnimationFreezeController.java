@@ -1,6 +1,7 @@
 package com.timelord.client.hook;
 
 import com.timelord.client.time.TheWorldClientState;
+import com.timelord.client.time.MadeInHeavenClientState;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 
@@ -22,7 +23,8 @@ public final class LivingAnimationFreezeController {
         }
 
         if (entity instanceof PlayerEntity player
-                && TheWorldClientState.canMove(player.getUuid())) {
+                && (TheWorldClientState.canMove(player.getUuid())
+                || MadeInHeavenClientState.theWorldResistanceFor(player.getUuid()) > 0.0D)) {
             FROZEN_PROGRESS.remove(entity.getUuid());
             return null;
         }

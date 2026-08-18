@@ -23,6 +23,7 @@ public final class AbilityManager {
         ABILITIES.put(AbilityType.TIME_SHIFT, new TimeShiftAbility());
         ABILITIES.put(AbilityType.TIME_REWIND, new TimeRewindAbility());
         ABILITIES.put(AbilityType.FUTURE_SIGHT, new FutureSightAbility());
+        ABILITIES.put(AbilityType.MADE_IN_HEAVEN, new MadeInHeavenAbility());
     }
 
     private AbilityManager() {}
@@ -233,7 +234,8 @@ public final class AbilityManager {
         DIMENSION_CUT(2, 4 * 20, "The Judgement Cut", true),
         TIME_SHIFT(3, 0, "Time Shift", false),
         TIME_REWIND(4, 15 * 20, "Time Rewind", false),
-        FUTURE_SIGHT(5, 20 * 20, "Future Sight", false);
+        FUTURE_SIGHT(5, 20 * 20, "Future Sight", false),
+        MADE_IN_HEAVEN(6, 0, "Made in Heaven", false);
 
         private final int networkId;
         private final int cooldownTicks;
@@ -267,6 +269,7 @@ public final class AbilityManager {
                 case TIME_SHIFT -> "ability.time-lord.time_shift";
                 case TIME_REWIND -> "ability.time-lord.time_rewind";
                 case FUTURE_SIGHT -> "ability.time-lord.future_sight";
+                case MADE_IN_HEAVEN -> "ability.time-lord.made_in_heaven";
             };
         }
 

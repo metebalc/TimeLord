@@ -14,6 +14,7 @@ public final class PacketChannels {
     public static final Channel EQUIP_ABILITY = mod("equip_ability");
     public static final Channel ABILITY_LOADOUT = mod("ability_loadout");
     public static final Channel ABILITY_STATE = mod("ability_state");
+    public static final Channel MADE_IN_HEAVEN_STATE = mod("made_in_heaven_state");
 
     public static final Channel THE_WORLD_STATE = mod("the_world_state");
     public static final Channel THE_WORLD_HIT = mod("the_world_hit");

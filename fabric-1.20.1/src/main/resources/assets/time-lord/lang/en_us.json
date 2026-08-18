@@ -33,10 +33,19 @@
   "ability.time-lord.time_rewind": "Time Rewind",
   "ability.time-lord.future_sight": "Future Sight",
   "ability.time-lord.dimension_cut": "Judgement Cut",
+  "ability.time-lord.made_in_heaven": "Made in Heaven",
   "ability.time-lord.slow_time.description": "Slows nearby time while you remain in control.",
   "ability.time-lord.the_world.description": "Stops time for everyone except its active users.",
   "ability.time-lord.time_shift.description": "Accelerates movement with a selectable multiplier.",
   "ability.time-lord.time_rewind.description": "Returns you to a safe state from three seconds ago.",
   "ability.time-lord.future_sight.description": "Reveals projectiles and mobs that threaten you.",
-  "ability.time-lord.dimension_cut.description": "Charges a spatial slash through enemies."
+  "ability.time-lord.dimension_cut.description": "Charges a spatial slash through enemies.",
+  "ability.time-lord.made_in_heaven.description": "Accelerates the universe while other players progressively fall behind in time.",
+  "hud.time-lord.mih.adapted": "MIH • ADAPTED • %s / 60.0s",
+  "hud.time-lord.mih.slowed": "MIH • %s • %s / 60.0s",
+  "hud.time-lord.mih.collapsing": "MIH • COLLAPSING • %s",
+  "hud.time-lord.mih.world_dominant": "MIH PAUSED • THE WORLD DOMINANT",
+  "hud.time-lord.mih.world_resistance": "MIH PAUSED • RESISTING AT %s",
+  "hud.time-lord.mih.world_frozen": "MIH PAUSED • FROZEN BY THE WORLD",
+  "hud.time-lord.mih.resetting": "MIH • UNIVERSE RESET"
 }

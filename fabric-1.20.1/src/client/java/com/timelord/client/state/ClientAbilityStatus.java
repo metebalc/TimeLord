@@ -5,6 +5,7 @@ import com.timelord.client.ClientJudgementCut;
 import com.timelord.client.TimeLordClient;
 import com.timelord.client.time.ClientTimeField;
 import com.timelord.client.time.TheWorldClientState;
+import com.timelord.client.time.MadeInHeavenClientState;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
@@ -26,6 +27,7 @@ public final class ClientAbilityStatus {
             case TIME_REWIND -> ClientTimeRewindState.getEffects().stream()
                     .anyMatch(effect -> effect.playerId().equals(client.player.getUuid()));
             case FUTURE_SIGHT -> ClientAbilityState.isActive(AbilityType.FUTURE_SIGHT);
+            case MADE_IN_HEAVEN -> MadeInHeavenClientState.isActiveUser(client.player.getUuid());
         };
     }
 
@@ -45,6 +47,12 @@ public final class ClientAbilityStatus {
             return Text.translatable(
                     "screen.time-lord.book.active_elapsed",
                     formatSeconds(ClientAbilityState.getActiveElapsedTicks(ability))
+            );
+
+        if (ability == AbilityType.MADE_IN_HEAVEN && isActive(ability))
+            return Text.translatable(
+                    "screen.time-lord.book.active_elapsed",
+                    formatSeconds(MadeInHeavenClientState.elapsedActiveTicks())
             );
 
         return Text.translatable(isActive(ability)

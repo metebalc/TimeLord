@@ -33,5 +33,18 @@
       "sounds": [
         "time-lord:time_shift_boom"
       ]
+    },
+    "mih_start": {
+      "sounds": [
+        "time-lord:mih_start"
+      ]
+    },
+    "mih_ending": {
+      "sounds": [
+        {
+          "name": "time-lord:mih_ending",
+          "stream": true
+        }
+      ]
     }
 }

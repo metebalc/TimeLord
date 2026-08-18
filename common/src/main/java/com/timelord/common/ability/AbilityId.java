@@ -11,7 +11,8 @@ public enum AbilityId {
     DIMENSION_CUT(2, 4 * 20, "The Judgement Cut", "ability.time-lord.dimension_cut", true),
     TIME_SHIFT(3, 0, "Time Shift", "ability.time-lord.time_shift", false),
     TIME_REWIND(4, 15 * 20, "Time Rewind", "ability.time-lord.time_rewind", false),
-    FUTURE_SIGHT(5, 20 * 20, "Future Sight", "ability.time-lord.future_sight", false);
+    FUTURE_SIGHT(5, 20 * 20, "Future Sight", "ability.time-lord.future_sight", false),
+    MADE_IN_HEAVEN(6, 0, "Made in Heaven", "ability.time-lord.made_in_heaven", false);
 
     private final int networkId;
     private final int cooldownTicks;

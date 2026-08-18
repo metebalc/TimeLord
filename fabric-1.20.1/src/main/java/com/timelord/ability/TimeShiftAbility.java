@@ -180,35 +180,12 @@ public final class TimeShiftAbility implements Ability {
     }
 
     private static void applyMode(ServerPlayerEntity player, Mode mode) {
-        EntityAttributeInstance speed = player.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);
-
-        if (speed == null)
-            return;
-
-        speed.removeModifier(TIME_SHIFT_SPEED_UUID);
-
-        EntityStepHeightAccessor stepAccessor = (EntityStepHeightAccessor) player;
-
+        applyModeSilently(player, mode);
         if (mode == Mode.OFF) {
-            stepAccessor.timeLord$setStepHeight(NORMAL_STEP_HEIGHT);
-
-            sendModeToClient(player, mode);
-
             player.sendMessage(Text.literal("Time Shift: OFF"), true);
-
             playModeEffect(player);
             return;
         }
-
-        stepAccessor.timeLord$setStepHeight(TIME_SHIFT_STEP_HEIGHT);
-
-        double modifierAmount = mode.multiplier() - 1.0D;
-
-        EntityAttributeModifier modifier = new EntityAttributeModifier(TIME_SHIFT_SPEED_UUID, "Time Shift Speed",
-                modifierAmount, EntityAttributeModifier.Operation.MULTIPLY_TOTAL);
-
-        speed.addTemporaryModifier(modifier);
-        sendModeToClient(player, mode);
         player.sendMessage(Text.literal("Time Shift: " + mode.multiplier() + "x"), true);
         playModeEffect(player);
     }
@@ -301,6 +278,40 @@ public final class TimeShiftAbility implements Ability {
         LAUNCH_CHARGES.remove(playerId);
         CHARGE_POSITIONS.remove(playerId);
         removeBurst(player);
+    }
+
+    /** Reapplies the UUID-backed mode to a newly joined or respawned player entity. */
+    public static void restorePersistentState(ServerPlayerEntity player) {
+        cancelTransientState(player);
+        Mode mode = PLAYER_MODES.getOrDefault(player.getUuid(), Mode.OFF);
+        applyModeSilently(player, mode);
+    }
+
+    public static void syncState(ServerPlayerEntity player) {
+        Mode mode = PLAYER_MODES.getOrDefault(player.getUuid(), Mode.OFF);
+        sendModeToClient(player, mode);
+    }
+
+    private static void applyModeSilently(ServerPlayerEntity player, Mode mode) {
+        EntityAttributeInstance speed =
+                player.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);
+        if (speed == null)
+            return;
+
+        speed.removeModifier(TIME_SHIFT_SPEED_UUID);
+        EntityStepHeightAccessor stepAccessor = (EntityStepHeightAccessor) player;
+        if (mode == Mode.OFF) {
+            stepAccessor.timeLord$setStepHeight(NORMAL_STEP_HEIGHT);
+        } else {
+            stepAccessor.timeLord$setStepHeight(TIME_SHIFT_STEP_HEIGHT);
+            speed.addTemporaryModifier(new EntityAttributeModifier(
+                    TIME_SHIFT_SPEED_UUID,
+                    "Time Shift Speed",
+                    mode.multiplier() - 1.0D,
+                    EntityAttributeModifier.Operation.MULTIPLY_TOTAL
+            ));
+        }
+        sendModeToClient(player, mode);
     }
 
     private static void tickWaterRunning(MinecraftServer server) {
@@ -622,6 +633,13 @@ public final class TimeShiftAbility implements Ability {
 
     public static int getMultiplier(ServerPlayerEntity player) {
         return PLAYER_MODES.getOrDefault(player.getUuid(), Mode.OFF).multiplier();
+    }
+
+    public static double getMovementMultiplier(ServerPlayerEntity player) {
+        double modeMultiplier = Math.max(1, getMultiplier(player));
+        return ACTIVE_BURSTS.containsKey(player.getUuid())
+                ? modeMultiplier * BURST_MULTIPLIER
+                : modeMultiplier;
     }
 
     private record BurstState(int ticksRemaining) {}

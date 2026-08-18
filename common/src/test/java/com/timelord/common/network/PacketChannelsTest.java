@@ -18,8 +18,9 @@ class PacketChannelsTest {
                 .map(PacketChannelsTest::readChannel)
                 .toList();
 
-        assertEquals(24, channels.size());
-        assertEquals(24, channels.stream().distinct().count());
+        assertEquals(25, channels.size());
+        assertEquals(25, channels.stream().distinct().count());
+        assertEquals("time-lord:made_in_heaven_state", PacketChannels.MADE_IN_HEAVEN_STATE.toString());
         assertEquals("timelord:start_time_field", PacketChannels.START_TIME_FIELD.toString());
         assertEquals("timelord:remove_time_field", PacketChannels.REMOVE_TIME_FIELD.toString());
     }
