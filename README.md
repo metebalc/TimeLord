@@ -9,9 +9,10 @@
 
 </div>
 
-Time Lord is a Fabric mod for Minecraft 1.20.1 that gives the player several time and space manipulation abilities, including slowing nearby entities, stopping time, extreme movement speed, and cutting through space.
+Time Lord is a Fabric mod for Minecraft 1.20.1 that gives the player several time and space manipulation abilities, including slowing nearby entities, stopping time, accelerating the perceived universe, extreme movement speed, and cutting through space.
 
-The Minecraft 1.21.1 module currently provides only a clean, launchable Time Lord foundation. Gameplay abilities have not yet been ported to 1.21.1.
+> [!NOTE]
+> The Minecraft 1.21.1 module currently provides only a clean, launchable minecraft and Time Lord assets. Gameplay abilities have not yet been ported to 1.21.1.
 
 ## Features
 
@@ -124,9 +125,43 @@ Turning Future Sight off starts its 20-second cooldown. It cannot be enabled aga
 
 ---
 
+### ![Made in Heaven](fabric-1.20.1/src/main/resources/assets/time-lord/textures/mih_32x32.png) Made in Heaven
+
+Start one global 60-second temporal acceleration that changes how each client perceives players and the world.
+
+Made in Heaven uses observer-specific temporal reference frames rather than physically slowing normal players.
+
+During the buildup:
+
+* Normal players see active Made in Heaven users become increasingly difficult to track while moving
+* Moving users gain historical afterimages and begin visually skipping between real received positions
+* Stationary users become clearly visible again after a short settling period
+* Made in Heaven users see normal remote players through bounded historical slow-motion presentation
+* Multiple Made in Heaven users share one global timer and perceive each other normally
+* Normal observers see an accelerated visual day/night cycle with synchronized sun, moon, sky color, stars, fog, clouds, and visual brightness
+* Active Made in Heaven users retain approximately normal server-relative world presentation
+
+At 60 seconds, one Universe Reset occurs:
+
+* Active Made in Heaven users preserve their current state
+* Other players are returned toward a lightweight snapshot captured during the generation
+* Snapshot restoration includes dimension, safe position, rotation, and health
+* Inventory, experience, equipment, blocks, containers, and world state are not rolled back, preventing item duplication
+* Dead or temporarily unavailable players can be restored through the pending restore system
+
+If the final active user disables the ability, dies, or disconnects before the reset, the generation collapses smoothly over approximately four seconds.
+
+The World pauses Made in Heaven's global timer and remains the dominant temporal override. Late-stage Made in Heaven users receive only limited resistance inside stopped time.
+
+**Default control**
+
+* Equip Made in Heaven to a skill slot, then press its key to toggle participation in the global generation
+
+---
+
 ### Ability HUD
 
-The compact left-side HUD displays the three equipped ability icons, radial cooldowns, active-state borders, the current Time Shift multiplier, and The World's remaining duration.
+The compact left-side HUD displays the three equipped ability icons, radial cooldowns, active-state borders, the current Time Shift multiplier, The World's remaining duration, and Made in Heaven's global phase and progress.
 
 Press `G` to open the two-page ability grimoire. Select a `Z`, `X`, or `C` bookmark, then click an ability to equip it. The server validates and synchronizes the loadout. Entries are grouped into Time Control, Mobility, Perception, and Combat pages so additional abilities can be added without expanding a fixed grid.
 
@@ -182,6 +217,12 @@ Clone the repository:
 ```bash
 git clone https://github.com/metebalc/TimeLord
 cd time-lord
+```
+
+Build the Minecraft 1.20.1 module and run its tests without configuring the incomplete port:
+
+```bash
+./gradlew :fabric-1.20.1:build --configure-on-demand
 ```
 
 Build all modules and run their tests:
