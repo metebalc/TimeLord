@@ -2,6 +2,7 @@ package com.timelord.client.hook;
 
 import com.timelord.client.mixin.LimbAnimatorAccessor;
 import com.timelord.client.time.TheWorldClientState;
+import com.timelord.client.time.MadeInHeavenClientState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -60,8 +61,10 @@ public final class ClientEntityFreezeController {
     }
 
     private static boolean shouldFreeze(Entity entity) {
-        return !(entity instanceof PlayerEntity player)
-                || !TheWorldClientState.canMove(player.getUuid());
+        if (!(entity instanceof PlayerEntity player))
+            return true;
+        return !TheWorldClientState.canMove(player.getUuid())
+                && MadeInHeavenClientState.theWorldResistanceFor(player.getUuid()) <= 0.0D;
     }
 
     private static void restoreTransform(Entity entity, FrozenEntityState state) {

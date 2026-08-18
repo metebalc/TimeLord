@@ -4,6 +4,7 @@
 	"compatibilityLevel": "JAVA_17",
 	"client": [
 		"GameRendererMixin",
+		"BackgroundRendererMixin",
 		"TimeShiftFovMixin",
 		"TimeShiftFirstPersonMixin",
 		"ClientWorldMixin",
@@ -15,7 +16,9 @@
 		"ParticleManagerMixin",
 		"SpriteAtlasTextureMixin",
 		"ItemEntityMixin",
-		"ItemEntityRendererMixin"
+		"ItemEntityRendererMixin",
+		"PlayerEntityRendererMixin",
+		"EntityRenderDispatcherMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

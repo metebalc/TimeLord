@@ -1,9 +1,13 @@
 package com.timelord.time;
 
 import com.timelord.ability.TheWorldAbility;
+import com.timelord.mih.FractionalTickAccumulator;
+import com.timelord.mih.MadeInHeavenPhysicalController;
+import com.timelord.mih.ProjectileTemporalPolicy;
+import com.timelord.mih.TemporalResolver;
 import com.timelord.network.TimeFieldNetworking;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -18,7 +22,10 @@ import java.util.UUID;
 
 public final class TimeController {
     private static final Map<UUID, SlowField> ACTIVE_FIELDS = new HashMap<>();
-    private static long serverTick;
+    private static final FractionalTickAccumulator THE_WORLD_RESISTANCE_TICKS =
+            new FractionalTickAccumulator();
+    private static final FractionalTickAccumulator SLOW_ENTITY_TICKS =
+            new FractionalTickAccumulator();
 
     private TimeController() {}
 
@@ -43,12 +50,28 @@ public final class TimeController {
         for (UUID owner : ACTIVE_FIELDS.keySet())
             TimeFieldNetworking.sendRemoveField(server, owner);
 
+        clear();
+    }
+
+    public static void clear() {
         ACTIVE_FIELDS.clear();
-        serverTick = 0L;
+        THE_WORLD_RESISTANCE_TICKS.clear();
+        SLOW_ENTITY_TICKS.clear();
+    }
+
+    /** Drops fractional cadence that must not cross player lifecycle boundaries. */
+    public static void clearTemporalRemainders(UUID entityId) {
+        THE_WORLD_RESISTANCE_TICKS.remove(entityId);
+        SLOW_ENTITY_TICKS.remove(entityId);
+    }
+
+    /** Clears temporal cadence without removing active Slow Time fields. */
+    public static void clearTemporalRemainders() {
+        THE_WORLD_RESISTANCE_TICKS.clear();
+        SLOW_ENTITY_TICKS.clear();
     }
 
     public static void tick(MinecraftServer server) {
-        serverTick++;
         Iterator<Map.Entry<UUID, SlowField>> iterator = ACTIVE_FIELDS.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<UUID, SlowField> entry = iterator.next();
@@ -73,31 +96,63 @@ public final class TimeController {
 
     public static boolean shouldTickEntity(ServerWorld world, Entity entity) {
         if (TheWorldAbility.isTimeStopped()) {
-            if (entity instanceof ServerPlayerEntity player)
-                return TheWorldAbility.canMove(player);
+            if (entity instanceof ServerPlayerEntity player) {
+                TemporalResolver.PlayerResolution resolution =
+                        MadeInHeavenPhysicalController.temporalResolution(player);
+                double wholeTickScale = resolution.wholeEntityTickScale();
+                if (wholeTickScale >= 0.999999D) {
+                    THE_WORLD_RESISTANCE_TICKS.remove(player.getUuid());
+                    return true;
+                }
+
+                if (!resolution.isWholeEntityTickStopped())
+                    return THE_WORLD_RESISTANCE_TICKS.shouldStep(
+                            player.getUuid(), wholeTickScale);
+
+                THE_WORLD_RESISTANCE_TICKS.remove(player.getUuid());
+            }
 
             return false;
         }
 
-        if (ACTIVE_FIELDS.isEmpty())
+        THE_WORLD_RESISTANCE_TICKS.remove(entity.getUuid());
+
+        double entityTemporalFactor = entityTemporalFactor(world, entity);
+        if (entityTemporalFactor >= 0.999999D) {
+            SLOW_ENTITY_TICKS.remove(entity.getUuid());
             return true;
+        }
 
-        int largestInterval = 1;
+        // Player input, networking, and camera-facing state must continue ticking. Their
+        // movement and actions are slowed independently by the authoritative player frame.
+        if (entity instanceof ServerPlayerEntity) {
+            SLOW_ENTITY_TICKS.remove(entity.getUuid());
+            return true;
+        }
 
+        return SLOW_ENTITY_TICKS.shouldStep(entity.getUuid(), entityTemporalFactor);
+    }
+
+    private static double entityTemporalFactor(ServerWorld world, Entity entity) {
+        double localSlowTime = slowTimeFactor(world, entity);
+        if (!(entity instanceof ProjectileEntity projectile))
+            return localSlowTime;
+
+        return ProjectileTemporalPolicy.scale(localSlowTime);
+    }
+
+    public static double slowTimeFactor(ServerWorld world, Entity entity) {
+        double factor = 1.0D;
         for (SlowField field : ACTIVE_FIELDS.values()) {
             if (!field.world().equals(world.getRegistryKey()))
                 continue;
-
             if (field.excludedEntityId() != null && field.excludedEntityId().equals(entity.getUuid()))
                 continue;
-
             if (entity.squaredDistanceTo(field.center()) > field.radius() * field.radius())
                 continue;
-
-            int interval = Math.max(1, Math.round(1.0F / field.scale()));
-            largestInterval = Math.max(largestInterval, interval);
+            factor = Math.min(factor, field.scale());
         }
-        return largestInterval == 1 || serverTick % largestInterval == 0L;
+        return factor;
     }
 
     public static boolean isTimeSlowed() {

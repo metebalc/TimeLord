@@ -11,10 +11,13 @@ import com.timelord.common.network.message.TheWorldMessages;
 import com.timelord.common.network.message.TimeFieldMessages;
 import com.timelord.common.network.message.TimeRewindMessages;
 import com.timelord.common.network.message.TimeShiftMessages;
+import com.timelord.mih.MadeInHeavenState;
+import com.timelord.mih.MadeInHeavenSyncState;
 import net.minecraft.network.PacketByteBuf;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
@@ -29,8 +32,14 @@ class PacketCodecRoundTripTest {
         assertEquals(cooldown, decode(AbilityPacketCodec.encode(cooldown), AbilityPacketCodec::decodeCooldown));
 
         AbilityMessages.LoadoutSync loadout = new AbilityMessages.LoadoutSync(
-                List.of(AbilityId.SLOW_TIME, AbilityId.THE_WORLD, AbilityId.TIME_SHIFT),
-                List.of(AbilityId.SLOW_TIME, AbilityId.THE_WORLD, AbilityId.TIME_SHIFT, AbilityId.FUTURE_SIGHT)
+                List.of(AbilityId.SLOW_TIME, AbilityId.THE_WORLD, AbilityId.MADE_IN_HEAVEN),
+                List.of(
+                        AbilityId.SLOW_TIME,
+                        AbilityId.THE_WORLD,
+                        AbilityId.TIME_SHIFT,
+                        AbilityId.FUTURE_SIGHT,
+                        AbilityId.MADE_IN_HEAVEN
+                )
         );
         assertEquals(loadout, decode(AbilityPacketCodec.encode(loadout), AbilityPacketCodec::decodeLoadout));
     }
@@ -84,6 +93,27 @@ class PacketCodecRoundTripTest {
         TimeShiftMessages.State timeShift = new TimeShiftMessages.State(true, 10);
         assertEquals(timeShift, decode(
                 TimeShiftPacketCodec.encode(timeShift), TimeShiftPacketCodec::decodeState));
+    }
+
+    @Test
+    void roundTripsMadeInHeavenStateWithoutSnapshots() {
+        LinkedHashSet<UUID> activeUsers = new LinkedHashSet<>();
+        activeUsers.add(UUID.randomUUID());
+        activeUsers.add(UUID.randomUUID());
+        MadeInHeavenSyncState state = new MadeInHeavenSyncState(
+                7L,
+                MadeInHeavenState.Phase.BUILDUP,
+                843,
+                0,
+                12_345,
+                false,
+                activeUsers
+        );
+
+        assertEquals(state, decode(
+                MadeInHeavenPacketCodec.encode(state),
+                MadeInHeavenPacketCodec::decode
+        ));
     }
 
     private static <T> T decode(PacketByteBuf buffer, Function<PacketByteBuf, T> decoder) {

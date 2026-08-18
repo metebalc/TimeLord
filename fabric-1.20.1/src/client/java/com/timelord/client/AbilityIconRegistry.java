@@ -17,6 +17,7 @@ public final class AbilityIconRegistry {
         ICONS.put(AbilityType.TIME_SHIFT, icon("dash_32x32.png"));
         ICONS.put(AbilityType.TIME_REWIND, icon("rewind_32x32.png"));
         ICONS.put(AbilityType.FUTURE_SIGHT, icon("future_sight_32x32.png"));
+        ICONS.put(AbilityType.MADE_IN_HEAVEN, icon("mih_32x32.png"));
     }
 
     private AbilityIconRegistry() {}

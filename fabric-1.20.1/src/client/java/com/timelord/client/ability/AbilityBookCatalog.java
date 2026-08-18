@@ -12,6 +12,7 @@ public final class AbilityBookCatalog {
     static {
         register(AbilityType.SLOW_TIME, AbilityCategory.TIME_CONTROL, "ability.time-lord.slow_time.description");
         register(AbilityType.THE_WORLD, AbilityCategory.TIME_CONTROL, "ability.time-lord.the_world.description");
+        register(AbilityType.MADE_IN_HEAVEN, AbilityCategory.TIME_CONTROL, "ability.time-lord.made_in_heaven.description");
         register(AbilityType.TIME_REWIND, AbilityCategory.TIME_CONTROL, "ability.time-lord.time_rewind.description");
         register(AbilityType.TIME_SHIFT, AbilityCategory.MOBILITY, "ability.time-lord.time_shift.description");
         register(AbilityType.FUTURE_SIGHT, AbilityCategory.PERCEPTION, "ability.time-lord.future_sight.description");

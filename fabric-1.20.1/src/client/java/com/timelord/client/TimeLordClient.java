@@ -6,6 +6,7 @@ import com.timelord.client.mixin.GameRendererAccessor;
 import com.timelord.client.network.AbilityClientNetworking;
 import com.timelord.client.network.JudgementCutClientNetworking;
 import com.timelord.client.network.TimeFieldClientNetworking;
+import com.timelord.client.network.MadeInHeavenClientNetworking;
 import com.timelord.client.network.AbilityStateClientNetworking;
 import com.timelord.client.network.FutureSightClientNetworking;
 import com.timelord.client.network.TimeRewindClientNetworking;
@@ -21,7 +22,12 @@ import com.timelord.client.state.ClientFutureSightState;
 import com.timelord.client.state.ClientTimeRewindState;
 import com.timelord.client.state.ClientAbilityLoadoutState;
 import com.timelord.client.hud.AbilityHudRenderer;
+import com.timelord.client.hud.MadeInHeavenCinematicRenderer;
+import com.timelord.client.hook.ClientProjectileTickController;
 import com.timelord.client.time.ClientTimeField;
+import com.timelord.client.time.MadeInHeavenClientState;
+import com.timelord.client.time.MadeInHeavenParticleClock;
+import com.timelord.client.time.MadeInHeavenVisualWorldTime;
 import com.timelord.client.time.TheWorldClientState;
 import com.timelord.client.time.TimeShiftWaterRunner;
 import com.timelord.mixin.EntityStepHeightAccessor;
@@ -85,6 +91,7 @@ public final class TimeLordClient implements ClientModInitializer {
 		FutureSightClientNetworking.register();
 		TimeRewindClientNetworking.register();
 		AbilityLoadoutClientNetworking.register();
+		MadeInHeavenClientNetworking.register();
 
 		SlowTimeFieldRenderer.register();
 		JudgementCutSlashRenderer.register();
@@ -96,12 +103,17 @@ public final class TimeLordClient implements ClientModInitializer {
 
 		TimeShiftWaterRunner.register();
 		AbilityHudRenderer.register();
+		MadeInHeavenCinematicRenderer.register();
 
 		ParticleFactoryRegistry.getInstance().register(ModParticles.TIME_SHIFT_LIGHTNING, TimeShiftLightningParticle.Factory::new);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			TemporalPlayerRenderController.tick();
+			TemporalProjectileRenderController.tick();
+			ClientProjectileTickController.endClientTick();
 			ClientTimeField.tick();
 			TheWorldClientState.tick();
+			MadeInHeavenClientState.tick(TheWorldClientState.isTimeStopped());
 			ClientAbilityState.tick();
 			TheWorldRenderer.tick();
 			tickTimeShiftBurst();
@@ -122,6 +134,12 @@ public final class TimeLordClient implements ClientModInitializer {
 					ClientFutureSightState.clear();
 					ClientTimeRewindState.clear();
 					TheWorldClientState.clear();
+					MadeInHeavenClientState.clear();
+					MadeInHeavenParticleClock.clear();
+					MadeInHeavenVisualWorldTime.clear();
+					TemporalPlayerRenderController.clear();
+					TemporalProjectileRenderController.clear();
+					ClientProjectileTickController.clear();
 					ClientAbilityLoadoutState.reset();
 					Arrays.fill(ACTIVE_INPUT_ABILITIES, null);
 					Arrays.fill(SKILL_KEY_HELD, false);
