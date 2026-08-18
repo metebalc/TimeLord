@@ -9,6 +9,7 @@ import com.timelord.client.time.TheWorldClientState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LightningEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -40,6 +41,10 @@ public abstract class ClientWorldMixin {
 
     @Inject(method = "tickEntity", at = @At("HEAD"), cancellable = true)
     private void timeLord$freezeEntityHead(Entity entity, CallbackInfo ci) {
+        if (TheWorldClientState.isTimeStopped() && entity instanceof LightningEntity) {
+            ci.cancel();
+            return;
+        }
         if (entity instanceof ProjectileEntity projectile
                 && !ClientProjectileTickController.shouldTick(projectile)) {
             ci.cancel();
